@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { canAccessRole, getSession, ROLE_ROUTES } from "@/lib/session";
-import { isAdmin } from "@/lib/roles";
+import { canAccessRole, clearSession, ROLE_ROUTES, setSession } from "@/lib/session";
+import { readUserProfile, saveUserProfile } from "@/lib/firebaseData";
 
 export function useRequireAuth({ allowedRoles = ["client", "vendor", "admin"], redirectTo = "/" } = {}) {
   const router = useRouter();
@@ -16,63 +16,52 @@ export function useRequireAuth({ allowedRoles = ["client", "vendor", "admin"], r
   useEffect(() => {
     let disposed = false;
 
-    const localUser = getSession();
-    if (localUser) {
-      if (localUser.role === "admin" || (allowedRoles.length === 1 && allowedRoles[0] === "admin")) {
-        const unsub = onAuthStateChanged(auth, async (currentUser) => {
-          if (disposed) return;
-
-          if (!currentUser || currentUser.uid !== localUser.uid || !(await isAdmin(currentUser.uid))) {
-            setUser(null);
-            setChecking(false);
-            router.replace(redirectTo);
-            return;
-          }
-
-          setUser({ ...localUser, role: "admin" });
-          setChecking(false);
-        });
-
-        return () => {
-          disposed = true;
-          unsub();
-        };
-      }
-
-      if (canAccessRole(localUser, allowedRoles)) {
-        setUser(localUser);
-        setChecking(false);
-      } else {
-        router.replace(ROLE_ROUTES[localUser.role] || redirectTo);
-      }
-      return undefined;
-    }
-
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
       if (disposed) return;
 
       if (!currentUser) {
+        clearSession();
         setUser(null);
         setChecking(false);
         router.replace(redirectTo);
         return;
       }
 
-      const adminAllowed = await isAdmin(currentUser.uid);
-      const firebaseUser = {
+      let firebaseUser = await readUserProfile(currentUser.uid);
+      if (!firebaseUser?.email && firebaseUser?.role !== "admin") {
+        firebaseUser = await saveUserProfile(currentUser.uid, {
+          uid: currentUser.uid,
+          role: "client",
+          name: currentUser.displayName || "toi.kz user",
+          phone: currentUser.phoneNumber || "",
+          email: currentUser.email || "",
+          status: "active",
+        }).catch(() => ({
+          uid: currentUser.uid,
+          role: "client",
+          name: currentUser.displayName || "toi.kz user",
+          phone: currentUser.phoneNumber || "",
+          email: currentUser.email || "",
+          status: "active",
+        }));
+      }
+
+      firebaseUser = {
+        ...firebaseUser,
         uid: currentUser.uid,
-        role: adminAllowed ? "admin" : "client",
-        name: currentUser.displayName || "toi.kz user",
-        phone: currentUser.phoneNumber || "",
-        email: currentUser.email || "",
+        name: firebaseUser.name || currentUser.displayName || "toi.kz user",
+        email: firebaseUser.email || currentUser.email || "",
+        emailVerified: currentUser.emailVerified,
       };
 
       if (!canAccessRole(firebaseUser, allowedRoles)) {
+        clearSession();
         setChecking(false);
-        router.replace(redirectTo);
+        router.replace(ROLE_ROUTES[firebaseUser.role] || redirectTo);
         return;
       }
 
+      setSession(firebaseUser);
       setUser(firebaseUser);
       setChecking(false);
     });

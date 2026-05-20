@@ -148,8 +148,8 @@ img {
   width: 46px;
   height: 46px;
   object-fit: contain;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.025);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(213, 173, 98, 0.12), transparent 68%);
 }
 
 .app-brand strong {
@@ -802,8 +802,9 @@ img {
     right: 0;
     bottom: 0;
     z-index: 9999;
-    display: grid;
-    grid-template-columns: repeat(var(--nav-count, 5), minmax(0, 1fr));
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
     gap: 4px;
     padding: 8px 8px calc(8px + var(--safe-bottom));
     border-top: 1px solid rgba(255, 255, 255, 0.09);
@@ -811,8 +812,13 @@ img {
     backdrop-filter: blur(20px);
   }
 
+  .app-bottom-nav::-webkit-scrollbar {
+    display: none;
+  }
+
   .bottom-nav-button {
     position: relative;
+    flex: 0 0 min(19vw, 86px);
     min-height: 58px;
     display: grid;
     place-items: center;
@@ -859,6 +865,11 @@ img {
   .section-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .list-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .premium-card-inner,

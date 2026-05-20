@@ -69,7 +69,7 @@ Admin MVP:
 - Messages read state, review moderation, complaints resolution
 - Content/settings editor
 
-Data for MVP is persisted in browser localStorage through `lib/appStore.js`. It is structured to match the Firebase production model.
+Application data is persisted in Firebase Realtime Database through `lib/appStore.js` and `lib/firebaseData.js`. Browser storage is used only for small UX preferences and a minimal non-authoritative session cache.
 
 ## Environment Variables
 

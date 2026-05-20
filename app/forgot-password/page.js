@@ -47,7 +47,7 @@ function ForgotInner() {
           Назад
         </button>
         <div className="app-brand" style={{ marginBottom: 22 }}>
-          <img className="app-brand-logo" src="/images/toi-logo.png" alt="toi.kz" />
+          <img className="app-brand-logo" src="/icons/logo-nav.png" alt="toi.kz" />
           <span>
             <strong>TOI.KZ</strong>
             <small>Восстановление доступа</small>

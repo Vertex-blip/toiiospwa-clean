@@ -5,21 +5,55 @@
 
     "admins": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": false
+        ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).val() === true)",
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+        ".validate": "newData.isBoolean()"
       }
     },
 
     "users": {
-      ".indexOn": ["phone", "phoneNumber", "phoneNumberNormalized", "email"],
+      ".indexOn": ["phone", "phoneNumber", "phoneNumberNormalized", "email", "role", "status"],
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).val() === true)",
-        ".write": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).val() === true)",
-        ".validate": "newData.hasChildren(['uid', 'role']) && newData.child('uid').val() === $uid && newData.child('role').val().matches(/^(client|vendor|admin)$/) && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 80)) && (!newData.child('phone').exists() || (newData.child('phone').isString() && newData.child('phone').val().matches(/^\\+7[0-9]{10}$/))) && (!newData.child('email').exists() || (newData.child('email').isString() && newData.child('email').val().length <= 254)) && (!newData.child('city').exists() || (newData.child('city').isString() && newData.child('city').val().length <= 80)) && (!newData.child('avatar').exists() || (newData.child('avatar').isString() && newData.child('avatar').val().length <= 350000))"
+        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (auth.uid === $uid && newData.child('uid').val() === auth.uid && newData.child('role').val() !== 'admin'))",
+        ".validate": "newData.hasChildren(['uid', 'role', 'email']) && newData.child('uid').val() === $uid && newData.child('role').val().matches(/^(client|vendor)$/) && newData.child('email').isString() && newData.child('email').val().length <= 254 && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 80)) && (!newData.child('phone').exists() || (newData.child('phone').isString() && (newData.child('phone').val() == '' || newData.child('phone').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('phoneNumber').exists() || (newData.child('phoneNumber').isString() && (newData.child('phoneNumber').val() == '' || newData.child('phoneNumber').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('phoneNumberNormalized').exists() || (newData.child('phoneNumberNormalized').isString() && (newData.child('phoneNumberNormalized').val() == '' || newData.child('phoneNumberNormalized').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('city').exists() || (newData.child('city').isString() && newData.child('city').val().length <= 80)) && (!newData.child('businessName').exists() || (newData.child('businessName').isString() && newData.child('businessName').val().length <= 120)) && (!newData.child('status').exists() || newData.child('status').val().matches(/^(active|blocked|pendingApproval)$/))"
+      }
+    },
+
+    "vendors": {
+      ".indexOn": ["ownerId", "status", "city", "category"],
+      ".read": "(query.orderByChild == 'status' && query.equalTo == 'approved') || (auth != null && (root.child('admins').child(auth.uid).val() === true || (query.orderByChild == 'ownerId' && query.equalTo == auth.uid)))",
+      "$vendorId": {
+        ".read": "data.child('status').val() === 'approved' || (auth != null && (data.child('ownerId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true))",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (!data.exists() && newData.child('ownerId').val() === auth.uid && newData.child('status').val() === 'pending') || (data.exists() && data.child('ownerId').val() === auth.uid && newData.child('ownerId').val() === data.child('ownerId').val() && newData.child('status').val() === data.child('status').val()))",
+        ".validate": "newData.hasChildren(['ownerId', 'businessName', 'category', 'city', 'status']) && newData.child('ownerId').isString() && newData.child('businessName').isString() && newData.child('businessName').val().length <= 120 && newData.child('category').isString() && newData.child('category').val().length <= 80 && newData.child('city').isString() && newData.child('city').val().length <= 80 && newData.child('status').val().matches(/^(pending|approved|rejected)$/)"
+      }
+    },
+
+    "services": {
+      ".indexOn": ["vendorId", "active", "category", "city"],
+      ".read": "(query.orderByChild == 'active' && query.equalTo == true) || (auth != null && (root.child('admins').child(auth.uid).val() === true || (query.orderByChild == 'vendorId' && root.child('vendors').child(query.equalTo).child('ownerId').val() === auth.uid)))",
+      "$serviceId": {
+        ".read": "data.child('active').val() === true || (auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('vendors').child(data.child('vendorId').val()).child('ownerId').val() === auth.uid))",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('vendors').child(newData.child('vendorId').val()).child('ownerId').val() === auth.uid)",
+        ".validate": "newData.hasChildren(['vendorId', 'category', 'title', 'city', 'active']) && newData.child('vendorId').isString() && newData.child('category').isString() && newData.child('title').isString() && newData.child('title').val().length <= 140 && newData.child('city').isString() && newData.child('active').isBoolean()"
+      }
+    },
+
+    "bookings": {
+      ".indexOn": ["clientId", "vendorId", "status", "date"],
+      ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || (query.orderByChild == 'clientId' && query.equalTo == auth.uid) || (query.orderByChild == 'vendorId' && root.child('vendors').child(query.equalTo).child('ownerId').val() === auth.uid))",
+      "$bookingId": {
+        ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || data.child('clientId').val() === auth.uid || root.child('vendors').child(data.child('vendorId').val()).child('ownerId').val() === auth.uid)",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (!data.exists() && newData.child('clientId').val() === auth.uid) || (data.exists() && data.child('clientId').val() === auth.uid && newData.child('clientId').val() === data.child('clientId').val() && newData.child('vendorId').val() === data.child('vendorId').val()) || (data.exists() && root.child('vendors').child(data.child('vendorId').val()).child('ownerId').val() === auth.uid && newData.child('clientId').val() === data.child('clientId').val() && newData.child('vendorId').val() === data.child('vendorId').val()))",
+        ".validate": "newData.hasChildren(['clientId', 'vendorId', 'date', 'status']) && newData.child('clientId').isString() && newData.child('vendorId').isString() && newData.child('date').isString() && newData.child('date').val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.child('status').val().matches(/^(pending|confirmed|depositPaid|cancelled|completed|declined)$/)"
       }
     },
 
     "events": {
+      ".indexOn": ["userId", "date"],
+      ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || (query.orderByChild == 'userId' && query.equalTo == auth.uid))",
       "$eventId": {
         ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)",
         ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (!data.exists() && newData.child('userId').val() === auth.uid) || (data.exists() && data.child('userId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val()))",
@@ -27,67 +61,11 @@
       }
     },
 
-    "vendors": {
-      ".indexOn": ["ownerId", "status", "city", "category"],
-      "$vendorId": {
-        ".read": "data.child('status').val() === 'approved' || (auth != null && (data.child('ownerId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true))",
-        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (!data.exists() && newData.child('ownerId').val() === auth.uid && newData.child('status').val() === 'pending') || (data.exists() && data.child('ownerId').val() === auth.uid && newData.child('ownerId').val() === data.child('ownerId').val() && newData.child('status').val() === data.child('status').val()))",
-        ".validate": "newData.hasChildren(['ownerId', 'businessName', 'category', 'city', 'status']) && newData.child('ownerId').isString() && newData.child('businessName').isString() && newData.child('businessName').val().length <= 120 && newData.child('category').isString() && newData.child('city').isString() && newData.child('status').val().matches(/^(pending|approved|rejected)$/)"
-      }
-    },
-
-    "services": {
-      ".indexOn": ["vendorId", "active", "category", "city"],
-      "$serviceId": {
-        ".read": "data.child('active').val() === true || (auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('vendors').child(data.child('vendorId').val()).child('ownerId').val() === auth.uid))",
-        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('vendors').child(newData.child('vendorId').val()).child('ownerId').val() === auth.uid)",
-        ".validate": "newData.hasChildren(['vendorId', 'category', 'title', 'city', 'active']) && newData.child('vendorId').isString() && newData.child('title').isString() && newData.child('title').val().length <= 140 && newData.child('active').isBoolean()"
-      }
-    },
-
-    "bookings": {
-      ".indexOn": ["clientId", "vendorId", "status", "date"],
-      "$bookingId": {
-        ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || data.child('clientId').val() === auth.uid || root.child('vendors').child(data.child('vendorId').val()).child('ownerId').val() === auth.uid)",
-        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (!data.exists() && newData.child('clientId').val() === auth.uid) || (data.exists() && data.child('clientId').val() === auth.uid && newData.child('clientId').val() === data.child('clientId').val()) || (data.exists() && root.child('vendors').child(data.child('vendorId').val()).child('ownerId').val() === auth.uid && newData.child('clientId').val() === data.child('clientId').val() && newData.child('vendorId').val() === data.child('vendorId').val()))",
-        ".validate": "newData.hasChildren(['clientId', 'vendorId', 'date', 'status']) && newData.child('clientId').isString() && newData.child('vendorId').isString() && newData.child('date').isString() && newData.child('date').val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.child('status').val().matches(/^(pending|confirmed|depositPaid|cancelled|completed|declined)$/)"
-      }
-    },
-
-    "guests": {
-      "$eventId": {
-        ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)",
-        ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)"
-      }
-    },
-
-    "budget": {
-      "$eventId": {
-        ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)",
-        ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)"
-      }
-    },
-
-    "checklist": {
-      "$eventId": {
-        ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)",
-        ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)"
-      }
-    },
-
-    "tables": {
-      "$eventId": {
-        ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)",
-        ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)"
-      }
-    },
-
-    "timeline": {
-      "$eventId": {
-        ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)",
-        ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)"
-      }
-    },
+    "guests": { "$eventId": { ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)", ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)" } },
+    "budget": { "$eventId": { ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)", ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)" } },
+    "checklist": { "$eventId": { ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)", ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)" } },
+    "tables": { "$eventId": { ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)", ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)" } },
+    "timeline": { "$eventId": { ".read": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)", ".write": "auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)" } },
 
     "invitations": {
       "$eventId": {
@@ -104,9 +82,23 @@
     },
 
     "messages": {
-      "$conversationId": {
+      "$messageId": {
         ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || data.child('participants').child(auth.uid).val() === true)",
         ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || newData.child('participants').child(auth.uid).val() === true)"
+      }
+    },
+
+    "reviews": {
+      ".read": true,
+      "$reviewId": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+      }
+    },
+
+    "complaints": {
+      "$complaintId": {
+        ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+        ".write": "auth != null"
       }
     },
 
@@ -115,20 +107,11 @@
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
     },
 
-    "phoneLoginIndex": {
-      "$phoneKey": {
-        ".read": true,
-        ".write": "auth != null && newData.child('uid').val() === auth.uid",
-        ".validate": "$phoneKey.matches(/^7[0-9]{10}$/) && newData.hasChildren(['uid', 'email']) && newData.child('uid').isString() && newData.child('email').isString() && newData.child('email').val().length <= 254 && (!newData.child('updatedAt').exists() || newData.child('updatedAt').isNumber())"
-      }
-    },
-
     "Users": {
       ".indexOn": ["phoneNumber", "phoneNumberNormalized", "email"],
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).val() === true)",
-        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (auth.uid === $uid && newData.child('role').val() !== 'admin'))",
-        ".validate": "newData.hasChildren(['uid', 'role', 'email']) && newData.child('uid').val() === $uid && newData.child('role').val().matches(/^(client|vendor|admin)$/) && newData.child('email').isString() && newData.child('email').val().length <= 254 && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 80)) && (!newData.child('phone').exists() || (newData.child('phone').isString() && newData.child('phone').val().matches(/^\\+7[0-9]{10}$/))) && (!newData.child('phoneNumber').exists() || (newData.child('phoneNumber').isString() && newData.child('phoneNumber').val().matches(/^\\+7[0-9]{10}$/))) && (!newData.child('phoneNumberNormalized').exists() || (newData.child('phoneNumberNormalized').isString() && newData.child('phoneNumberNormalized').val().matches(/^\\+7[0-9]{10}$/))) && (!newData.child('city').exists() || (newData.child('city').isString() && newData.child('city').val().length <= 80))"
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
       }
     },
     "Halls": {
@@ -138,13 +121,13 @@
     "Bookings": {
       "$bookingId": {
         ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true)",
-        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (!data.exists() && newData.child('userId').val() === auth.uid) || (data.exists() && data.child('userId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val()))"
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
       }
     },
     "Vendors": {
       "$vendorId": {
         ".read": true,
-        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || data.child('ownerUid').val() === auth.uid)"
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
       }
     }
   }

@@ -24,11 +24,10 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-import { get, ref, set } from "firebase/database";
 import { CATEGORIES, EVENT_TYPES, KZ_CITIES } from "@/lib/appData";
 import { useAppStore } from "@/lib/appStore";
-import { findEmailByPhone, writePhoneLoginIndex } from "@/lib/authLookups";
-import { auth, db } from "@/lib/firebase";
+import { readUserProfile, saveUserProfile, saveVendorProfile } from "@/lib/firebaseData";
+import { auth } from "@/lib/firebase";
 import { isValidEmail, isValidKazakhstanPhone, normalizeEmail, normalizePhone, sanitizeText } from "@/lib/sanitize";
 import { makeSessionUser, ROLE_ROUTES, setSession } from "@/lib/session";
 import styles from "./AuthPage.module.css";
@@ -133,11 +132,6 @@ export default function AuthPage({ initialTab = "login" }) {
     router.push(route || ROLE_ROUTES[user.role] || "/menu/home");
   }
 
-  async function getUserProfile(uid) {
-    const snap = await get(ref(db, `Users/${uid}`)).catch(() => null);
-    return snap?.exists() ? snap.val() : null;
-  }
-
   async function handleLogin(e) {
     e.preventDefault();
     setSubmitting(true);
@@ -153,36 +147,23 @@ export default function AuthPage({ initialTab = "login" }) {
     try {
       let loginEmail = "";
 
-      if (safeLoginId.includes("@")) {
-        loginEmail = normalizeEmail(safeLoginId);
-        if (!isValidEmail(loginEmail)) {
-          setSubmitting(false);
-          setError("Введите корректный email");
-          return;
-        }
-      } else {
-        const safePhone = normalizePhone(safeLoginId);
-        if (!isValidKazakhstanPhone(safePhone)) {
-          setSubmitting(false);
-          setError("Введите email или корректный номер +7XXXXXXXXXX");
-          return;
-        }
+      if (!safeLoginId.includes("@")) {
+        setSubmitting(false);
+        setError("Вход по телефону Coming soon. Используйте email и пароль.");
+        return;
+      }
 
-        loginEmail = await findEmailByPhone(safePhone);
-        if (!loginEmail) {
-          setSubmitting(false);
-          setError("Пользователь с таким номером не найден. Войдите через email или зарегистрируйтесь.");
-          return;
-        }
+      loginEmail = normalizeEmail(safeLoginId);
+      if (!isValidEmail(loginEmail)) {
+        setSubmitting(false);
+        setError("Введите корректный email");
+        return;
       }
 
       const credential = await signInWithEmailAndPassword(auth, loginEmail, password);
-      const profile = await getUserProfile(credential.user.uid);
-      const role = profile?.role || accountType || "client";
+      const profile = await readUserProfile(credential.user.uid);
+      const role = profile?.role || "client";
       const profilePhone = profile?.phoneNumber || profile?.phone || credential.user.phoneNumber || "";
-      if (profilePhone) {
-        await writePhoneLoginIndex({ phone: profilePhone, email: credential.user.email || loginEmail, uid: credential.user.uid }).catch(() => {});
-      }
       const user = {
         uid: credential.user.uid,
         role,
@@ -272,8 +253,7 @@ export default function AuthPage({ initialTab = "login" }) {
         createdAt: Date.now(),
       };
 
-      const profileWrite = await set(ref(db, `Users/${credential.user.uid}`), profile).then(() => true).catch(() => false);
-      await writePhoneLoginIndex({ phone: safePhone, email: safeEmail, uid: credential.user.uid }).catch(() => {});
+      const profileWrite = await saveUserProfile(credential.user.uid, profile).then(() => true).catch(() => false);
 
       const user = makeSessionUser({
         role: accountType,
@@ -289,32 +269,34 @@ export default function AuthPage({ initialTab = "login" }) {
       user.createdAt = new Date(profile.createdAt).toISOString();
 
       if (accountType === "vendor") {
+        const vendorProfile = {
+          id: credential.user.uid,
+          ownerId: credential.user.uid,
+          businessName: safeBusinessName,
+          title: safeBusinessName,
+          category: vendorCategory,
+          city,
+          description: "Новый vendor profile ожидает проверки администратора.",
+          priceFrom: 0,
+          capacity: null,
+          rating: 0,
+          reviewsCount: 0,
+          verified: false,
+          featured: false,
+          status: "pending",
+          phone: safePhone,
+          whatsapp: sanitizeText(whatsapp, 32),
+          instagram: sanitizeText(instagram, 80),
+          image: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1200",
+          features: [],
+          availableDates: [],
+          createdAt: new Date().toISOString(),
+        };
+        await saveVendorProfile(credential.user.uid, vendorProfile).catch(() => {});
         setStore((current) => ({
           ...current,
           vendors: [
-            {
-              id: credential.user.uid,
-              ownerId: credential.user.uid,
-              businessName: safeBusinessName,
-              title: safeBusinessName,
-              category: vendorCategory,
-              city,
-              description: "Новый vendor profile ожидает проверки администратора.",
-              priceFrom: 0,
-              capacity: null,
-              rating: 0,
-              reviewsCount: 0,
-              verified: false,
-              featured: false,
-              status: "pending",
-              phone: safePhone,
-              whatsapp: sanitizeText(whatsapp, 32),
-              instagram: sanitizeText(instagram, 80),
-              image: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1200",
-              features: [],
-              availableDates: [],
-              createdAt: new Date().toISOString(),
-            },
+            vendorProfile,
             ...current.vendors.filter((vendor) => vendor.ownerId !== credential.user.uid),
           ],
         }));
@@ -355,38 +337,8 @@ export default function AuthPage({ initialTab = "login" }) {
       return;
     }
 
-    try {
-      const loginEmail = await findEmailByPhone(safePhone);
-      if (!loginEmail) {
-        setSubmitting(false);
-        showError("Неверный телефон или пароль");
-        return;
-      }
-
-      const credential = await signInWithEmailAndPassword(auth, loginEmail, password);
-      const profile = await getUserProfile(credential.user.uid);
-      const role = profile?.role || "client";
-      const profilePhone = profile?.phoneNumber || profile?.phone || safePhone;
-      await writePhoneLoginIndex({ phone: profilePhone, email: credential.user.email || loginEmail, uid: credential.user.uid }).catch(() => {});
-
-      const user = {
-        uid: credential.user.uid,
-        role,
-        name: profile?.name || credential.user.displayName || "toi.kz user",
-        phone: profilePhone,
-        email: credential.user.email || loginEmail,
-        emailVerified: credential.user.emailVerified,
-        city: profile?.city || city,
-        businessName: profile?.businessName || "",
-        status: profile?.status || "active",
-        createdAt: profile?.createdAt || new Date().toISOString(),
-      };
-
-      finishAuth(user, role === "vendor" ? "/vendor" : role === "admin" ? "/admin" : "/menu/home");
-    } catch (phoneLoginError) {
-      setSubmitting(false);
-      setError(firebaseErrorMessage(phoneLoginError));
-    }
+    setSubmitting(false);
+    setSuccess("Вход по телефону Coming soon. Сейчас используйте email и пароль.");
   }
 
   async function handleForgotPassword() {
@@ -429,7 +381,8 @@ export default function AuthPage({ initialTab = "login" }) {
         <section className={styles.card} aria-label="Авторизация toi.kz">
           <div className={styles.content}>
             <header className={styles.brand}>
-              <img className={styles.brandLogo} src="/images/toi-logo.png" alt="toi.kz" />
+              <div className={styles.monogram} aria-hidden="true"><span>T</span></div>
+              <h1 className={styles.logoText}>TOI.KZ</h1>
               <div className={styles.ornamentLine} aria-hidden="true">
                 <span className={styles.diamond} />
               </div>
@@ -488,7 +441,7 @@ export default function AuthPage({ initialTab = "login" }) {
                   <div className={styles.divider}>или</div>
                   <button className={styles.secondaryButton} type="button" onClick={handlePhoneLoginStart}>
                     <Phone size={20} aria-hidden="true" />
-                    Войти по номеру телефона
+                    Войти по номеру телефона - Coming soon
                   </button>
                 </form>
               </div>
@@ -497,8 +450,8 @@ export default function AuthPage({ initialTab = "login" }) {
             {activeTab === "login" && phoneLoginMode ? (
               <div className={styles.formPanel} key="phone-login">
                 <div className={styles.formHeader}>
-                  <h2>Вход по номеру телефона</h2>
-                  <p>Введите номер, указанный при регистрации, и пароль от аккаунта.</p>
+                  <h2>Вход по номеру телефона - Coming soon</h2>
+                  <p>Безопасный вход по телефону будет подключен через Firebase Phone Auth/OTP. Сейчас используйте email и пароль.</p>
                 </div>
                 {message}
                 <form className={styles.form} onSubmit={handlePhoneSubmit}>
@@ -508,7 +461,7 @@ export default function AuthPage({ initialTab = "login" }) {
                   </div>
                   <PasswordField value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" ariaLabel="Пароль" visible={showLoginPassword} onToggle={() => setShowLoginPassword((value) => !value)} />
                   <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                    {submitting ? "Входим..." : "Войти по номеру"}
+                    {submitting ? "Проверяем..." : "Phone login Coming soon"}
                   </button>
                   <button className={styles.backButton} type="button" onClick={() => { setPhoneLoginMode(false); resetMessages(); }}>
                     Вернуться

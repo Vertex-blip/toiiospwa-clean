@@ -39,7 +39,7 @@ export default function AppShell({
       <div className="app-shell" style={{ "--nav-count": navItems.length }}>
         <aside className="app-sidebar" aria-label="Навигация">
           <button className="app-brand" type="button" onClick={() => router.push(navItems[0]?.href || "/menu/home")}>
-            <img className="app-brand-logo" src="/images/toi-logo.png" alt="toi.kz" />
+            <img className="app-brand-logo" src="/icons/logo-nav.png" alt="toi.kz" />
             <span>
               <strong>TOI.KZ</strong>
               <small>{eyebrow}</small>

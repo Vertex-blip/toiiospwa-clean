@@ -5,10 +5,9 @@ import { useAppStore } from "@/lib/appStore";
 import { clearSession, getSession, setSession, updateSession } from "@/lib/session";
 import { isValidEmail, isValidKazakhstanPhone, normalizeEmail, normalizePhone, sanitizeText } from "@/lib/sanitize";
 import { useToast } from "@/components/Toast";
-import { auth, db } from "@/lib/firebase";
-import { findEmailByPhone, writePhoneLoginIndex } from "@/lib/authLookups";
+import { auth } from "@/lib/firebase";
+import { patchUserProfile, readUserProfile, saveVendorProfile as persistVendorProfile } from "@/lib/firebaseData";
 import { isAdmin } from "@/lib/roles";
-import { get, ref } from "firebase/database";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import {
   AlertTriangle,
@@ -48,7 +47,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const RELATIONS = ["туыс", "дос", "әріптес", "құда жақ", "қыз жақ", "жігіт жақ"];
@@ -136,7 +135,7 @@ export function ClientHomePage() {
   const event = currentEvent;
   const notifications = store.notifications[session.uid] || [];
   const unread = notifications.filter((item) => item.unread).length;
-  const bookings = store.bookings.filter((item) => item.clientId === session.uid || item.clientId === "client_demo").slice(0, 3);
+  const bookings = store.bookings.filter((item) => item.clientId === session.uid).slice(0, 3);
   const recommended = store.vendors.filter((vendor) => vendor.status === "approved" && vendor.featured).slice(0, 3);
 
   const quickActions = [
@@ -262,7 +261,7 @@ export function ClientHomePage() {
         <SectionHead title="Типы мероприятий" text="Подходит для казахстанских семейных и бизнес-мероприятий." />
         <div className="scroll-row" style={{ marginTop: 16 }}>
           {EVENT_TYPES.map((type) => (
-            <button className="chip" type="button" key={type} onClick={() => showToast(`${type}: подбор скоро будет персонализирован`)}>
+            <button className="chip" type="button" key={type} onClick={() => showToast(`${type}: подбор Coming soon`)}>
               {type}
             </button>
           ))}
@@ -276,6 +275,7 @@ export function CatalogPage() {
   const showToast = useToast();
   const { store, currentEvent, addBooking } = useAppStore();
   const session = getSession() || {};
+  const currentUser = store.users.find((user) => user.uid === session.uid) || {};
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("Все");
   const [city, setCity] = useState("Все");
@@ -289,7 +289,7 @@ export function CatalogPage() {
     time: "18:00",
     guests: currentEvent?.guestCount || 100,
     eventType: currentEvent?.type || "Той",
-    phone: session.phone || "",
+    phone: currentUser.phone || "",
     comment: "",
   });
 
@@ -316,11 +316,11 @@ export function CatalogPage() {
       ...current,
       eventType: currentEvent?.type || "Той",
       guests: currentEvent?.guestCount || current.guests,
-      phone: session.phone || current.phone,
+      phone: currentUser.phone || current.phone,
     }));
   }
 
-  function submitBooking(e) {
+  async function submitBooking(e) {
     e.preventDefault();
     const phone = normalizePhone(bookingForm.phone);
 
@@ -329,25 +329,29 @@ export function CatalogPage() {
       return;
     }
 
-    const booking = addBooking({
-      clientId: session.uid,
-      vendorId: bookingVendor.id,
-      serviceId: `service_${bookingVendor.id}`,
-      eventId: currentEvent?.id || "event-main",
-      serviceName: bookingVendor.businessName,
-      vendorName: bookingVendor.businessName,
-      date: bookingForm.date,
-      time: bookingForm.time,
-      guests: Number(bookingForm.guests),
-      eventType: bookingForm.eventType,
-      price: Number(bookingVendor.priceFrom || 0) * Number(bookingForm.guests || 1),
-      deposit: Math.round(Number(bookingVendor.priceFrom || 0) * Number(bookingForm.guests || 1) * 0.1),
-      comment: sanitizeText(bookingForm.comment, 400),
-      contactPhone: phone,
-    });
+    try {
+      const booking = await addBooking({
+        clientId: session.uid,
+        vendorId: bookingVendor.id,
+        serviceId: `service_${bookingVendor.id}`,
+        eventId: currentEvent?.id || "event-main",
+        serviceName: bookingVendor.businessName,
+        vendorName: bookingVendor.businessName,
+        date: bookingForm.date,
+        time: bookingForm.time,
+        guests: Number(bookingForm.guests),
+        eventType: bookingForm.eventType,
+        price: Number(bookingVendor.priceFrom || 0) * Number(bookingForm.guests || 1),
+        deposit: Math.round(Number(bookingVendor.priceFrom || 0) * Number(bookingForm.guests || 1) * 0.1),
+        comment: sanitizeText(bookingForm.comment, 400),
+        contactPhone: phone,
+      });
 
-    setBookingVendor(null);
-    showToast(`Заявка #${booking.id.slice(-5)} отправлена`);
+      setBookingVendor(null);
+      showToast(`Заявка #${booking.id.slice(-5)} отправлена`);
+    } catch {
+      showToast("Не удалось сохранить бронь. Проверьте Firebase Database Rules.");
+    }
   }
 
   function toggleCompare(vendor) {
@@ -435,7 +439,7 @@ export function CatalogPage() {
                 {vendor.whatsapp ? (
                   <a className="ghost-button" href={`https://wa.me/${vendor.whatsapp}`} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>
                 ) : (
-                  <button className="ghost-button" type="button" onClick={() => showToast("Контакты скоро будут доступны")}>WhatsApp</button>
+                  <button className="ghost-button" type="button" onClick={() => showToast("Контакты Coming soon")}>WhatsApp Coming soon</button>
                 )}
               </div>
             </div>
@@ -534,7 +538,7 @@ export function BookingsPage() {
   const { store, updateBooking } = useAppStore();
   const [selected, setSelected] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
-  const bookings = store.bookings.filter((booking) => booking.clientId === session.uid || booking.clientId === "client_demo");
+  const bookings = store.bookings.filter((booking) => booking.clientId === session.uid);
 
   return (
     <div className="page-stack">
@@ -556,8 +560,8 @@ export function BookingsPage() {
             </div>
             <div className="grid-2">
               <button className="secondary-button" type="button" onClick={() => setSelected(booking)}>Подробнее</button>
-              <button className="ghost-button" type="button" onClick={() => showToast("Чат с vendor скоро будет доступен")}>Написать</button>
-              <button className="ghost-button" type="button" onClick={() => showToast("Изменение заявки скоро будет доступно")}>Изменить</button>
+              <button className="ghost-button" type="button" onClick={() => showToast("Чат с vendor Coming soon")}>Написать Coming soon</button>
+              <button className="ghost-button" type="button" onClick={() => showToast("Изменение заявки Coming soon")}>Изменить Coming soon</button>
               <button className="danger-button" type="button" onClick={() => setCancelTarget(booking)}>Отменить</button>
             </div>
           </article>
@@ -846,8 +850,13 @@ export function ProfilePage() {
   const showToast = useToast();
   const { store, markNotificationsRead, setStore } = useAppStore();
   const session = getSession() || {};
-  const [profile, setProfile] = useState({ name: session.name || "", city: session.city || "Алматы", phone: session.phone || "" });
+  const storedProfile = store.users.find((user) => user.uid === session.uid) || session;
+  const [profile, setProfile] = useState({ name: storedProfile.name || "", city: storedProfile.city || "Алматы", phone: storedProfile.phone || "" });
   const notifications = store.notifications[session.uid] || [];
+
+  useEffect(() => {
+    setProfile({ name: storedProfile.name || "", city: storedProfile.city || "Алматы", phone: storedProfile.phone || "" });
+  }, [storedProfile.name, storedProfile.city, storedProfile.phone]);
 
   async function logout() {
     clearSession();
@@ -859,14 +868,22 @@ export function ProfilePage() {
     router.replace("/");
   }
 
-  function saveProfile(e) {
+  async function saveProfile(e) {
     e.preventDefault();
-    const next = updateSession({
+    const next = {
+      ...session,
       name: sanitizeText(profile.name, 80),
       city: profile.city,
       phone: normalizePhone(profile.phone),
-    });
-    setStore((current) => ({ ...current, users: current.users.map((user) => user.uid === next.uid ? { ...user, ...next } : user) }));
+    };
+    await patchUserProfile(session.uid, next).catch(() => {});
+    updateSession(next);
+    setStore((current) => ({
+      ...current,
+      users: current.users.some((user) => user.uid === next.uid)
+        ? current.users.map((user) => user.uid === next.uid ? { ...user, ...next } : user)
+        : [next, ...current.users],
+    }));
     showToast("Профиль сохранен");
   }
 
@@ -877,7 +894,7 @@ export function ProfilePage() {
         <section className="premium-card premium-card-inner">
           <form className="page-stack" onSubmit={saveProfile}>
             <div className="list-row">
-              <img src="/images/toi-logo.png" alt="toi.kz" style={{ width: 72, height: 72, objectFit: "contain", borderRadius: 18, background: "rgba(255,255,255,0.03)" }} />
+              <img src="/icons/logo-nav.png" alt="toi.kz" style={{ width: 72, height: 72, objectFit: "contain", borderRadius: 18, background: "rgba(255,255,255,0.03)" }} />
               <div><h2 style={{ margin: 0 }}>{profile.name || "toi.kz user"}</h2><p className="muted" style={{ margin: "6px 0 0" }}>Для пользователей бесплатно</p></div>
             </div>
             <input className="premium-input" value={profile.name} onChange={(e) => setProfile({ ...profile, name: sanitizeText(e.target.value, 80) })} placeholder="Имя" />
@@ -905,16 +922,30 @@ export function VendorSection({ section = "dashboard" }) {
   const showToast = useToast();
   const session = getSession() || {};
   const { store, setStore, updateBooking, uid } = useAppStore();
-  const vendor = store.vendors.find((item) => item.ownerId === session.uid) || store.vendors[0];
-  const [profile, setProfile] = useState(vendor);
+  const vendor = store.vendors.find((item) => item.ownerId === session.uid || item.id === session.uid);
+  const [profile, setProfile] = useState(vendor || {});
   const [serviceForm, setServiceForm] = useState({ title: "", category: vendor?.category || "Залы", priceFrom: "", city: vendor?.city || "Алматы", description: "" });
   const [busyDate, setBusyDate] = useState("");
   const orders = store.bookings.filter((booking) => booking.vendorId === vendor?.id || booking.vendorName === vendor?.businessName);
   const vendorServices = store.services.filter((service) => service.vendorId === vendor?.id);
   const busyDates = store.busyDates[vendor?.id] || [];
 
-  function saveVendorProfile(e) {
+  useEffect(() => {
+    if (vendor) setProfile(vendor);
+  }, [vendor?.id, vendor?.updatedAt]);
+
+  if (!vendor) {
+    return (
+      <div className="page-stack">
+        <SectionHead title="Vendor cabinet" text="Профиль поставщика услуг создается после регистрации и проверки данных." />
+        <EmptyState title="Профиль не найден" text="Если вы только что зарегистрировались, обновите страницу. Если проблема повторяется, обратитесь к администратору." />
+      </div>
+    );
+  }
+
+  async function saveVendorProfile(e) {
     e.preventDefault();
+    await persistVendorProfile(vendor.id, { ...vendor, ...profile, ownerId: vendor.ownerId || session.uid, status: vendor.status }).catch(() => {});
     setStore((current) => ({
       ...current,
       vendors: current.vendors.map((item) => item.id === vendor.id ? { ...item, ...profile, status: item.status } : item),
@@ -1012,28 +1043,17 @@ export function AdminLoginPage() {
     }
 
     try {
-      let loginEmail = "";
-      if (safeLoginId.includes("@")) {
-        loginEmail = normalizeEmail(safeLoginId);
-        if (!isValidEmail(loginEmail)) {
-          setSubmitting(false);
-          setError("Введите корректный email администратора");
-          return;
-        }
-      } else {
-        const safePhone = normalizePhone(safeLoginId);
-        if (!isValidKazakhstanPhone(safePhone)) {
-          setSubmitting(false);
-          setError("Введите корректный телефон администратора");
-          return;
-        }
+      if (!safeLoginId.includes("@")) {
+        setSubmitting(false);
+        setError("Admin вход доступен только по email и паролю");
+        return;
+      }
 
-        loginEmail = await findEmailByPhone(safePhone);
-        if (!loginEmail) {
-          setSubmitting(false);
-          setError("Неверный логин или пароль");
-          return;
-        }
+      const loginEmail = normalizeEmail(safeLoginId);
+      if (!isValidEmail(loginEmail)) {
+        setSubmitting(false);
+        setError("Введите корректный email администратора");
+        return;
       }
 
       const credential = await signInWithEmailAndPassword(auth, loginEmail, password);
@@ -1046,12 +1066,8 @@ export function AdminLoginPage() {
         return;
       }
 
-      const profileSnap = await get(ref(db, `Users/${credential.user.uid}`)).catch(() => null);
-      const profile = profileSnap?.exists() ? profileSnap.val() : {};
+      const profile = await readUserProfile(credential.user.uid).catch(() => ({}));
       const profilePhone = profile?.phoneNumber || profile?.phone || credential.user.phoneNumber || "";
-      if (profilePhone) {
-        await writePhoneLoginIndex({ phone: profilePhone, email: credential.user.email || loginEmail, uid: credential.user.uid }).catch(() => {});
-      }
 
       const user = {
         uid: credential.user.uid,
@@ -1075,9 +1091,9 @@ export function AdminLoginPage() {
   return (
     <main className="app-loader" style={{ padding: 18 }}>
       <section className="premium-card premium-card-inner" style={{ width: "min(460px, 94vw)" }}>
-        <div className="app-brand" style={{ marginBottom: 20 }}><img className="app-brand-logo" src="/images/toi-logo.png" alt="toi.kz" /><span><strong>TOI.KZ</strong><small>Admin secure entry</small></span></div>
+        <div className="app-brand" style={{ marginBottom: 20 }}><img className="app-brand-logo" src="/icons/logo-nav.png" alt="toi.kz" /><span><strong>TOI.KZ</strong><small>Admin secure entry</small></span></div>
         <form className="page-stack" onSubmit={login}>
-          <input className="premium-input" value={loginId} onChange={(e) => setLoginId(sanitizeText(e.target.value, 254))} placeholder="Email или +7..." aria-label="Admin email or phone" autoComplete="username" />
+          <input className="premium-input" value={loginId} onChange={(e) => setLoginId(sanitizeText(e.target.value, 254))} placeholder="Admin email" aria-label="Admin email" autoComplete="username" />
           <input className="premium-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" aria-label="Admin password" />
           {error ? <div className="status-pill danger">{error}</div> : null}
           <button className="premium-button" type="submit" disabled={submitting}>{submitting ? "Проверяем..." : "Войти в admin panel"}</button>
@@ -1104,11 +1120,11 @@ export function AdminSection({ section = "dashboard" }) {
   }
 
   function renderDashboard() {
-    return <><div className="grid-4">{metrics.map(([Icon, label, value]) => <StatCard key={label} icon={Icon} label={label} value={value} />)}</div><div className="grid-2"><section className="premium-card premium-card-inner"><SectionHead title="Ожидают проверки" text="Vendor profiles pending approval." /><div className="page-stack" style={{ marginTop: 16 }}>{pendingVendors.map((vendor) => <div className="list-row" key={vendor.id}><strong>{vendor.businessName}</strong><button className="premium-button" type="button" onClick={() => updateVendor(vendor.id, { status: "approved" })}>Approve</button></div>)}</div></section><section className="premium-card premium-card-inner"><SectionHead title="Unread badges" text="Persisted in local app store for MVP." /><div className="grid-3" style={{ marginTop: 16 }}><StatCard icon={MessageCircle} label="Хабарламалар" value={unreadMessages} /><StatCard icon={FileText} label="Өтінімдер" value={pendingVendors.length} /><StatCard icon={Calendar} label="Сұраныстар" value={store.bookings.filter((b) => b.status === "pending").length} /></div></section></div></>;
+    return <><div className="grid-4">{metrics.map(([Icon, label, value]) => <StatCard key={label} icon={Icon} label={label} value={value} />)}</div><div className="grid-2"><section className="premium-card premium-card-inner"><SectionHead title="Ожидают проверки" text="Vendor profiles pending approval." /><div className="page-stack" style={{ marginTop: 16 }}>{pendingVendors.map((vendor) => <div className="list-row" key={vendor.id}><strong>{vendor.businessName}</strong><button className="premium-button" type="button" onClick={() => updateVendor(vendor.id, { status: "approved" })}>Approve</button></div>)}</div></section><section className="premium-card premium-card-inner"><SectionHead title="Unread badges" text="Loaded from Firebase data." /><div className="grid-3" style={{ marginTop: 16 }}><StatCard icon={MessageCircle} label="Хабарламалар" value={unreadMessages} /><StatCard icon={FileText} label="Өтінімдер" value={pendingVendors.length} /><StatCard icon={Calendar} label="Сұраныстар" value={store.bookings.filter((b) => b.status === "pending").length} /></div></section></div></>;
   }
 
   function renderUsers() {
-    return <section className="premium-card table-wrap"><table className="premium-table"><thead><tr><th>Имя</th><th>Роль</th><th>Город</th><th>Статус</th><th></th></tr></thead><tbody>{store.users.map((user) => <tr key={user.uid}><td>{user.name}</td><td><select className="premium-select" value={user.role} onChange={(e) => setStore((current) => ({ ...current, users: current.users.map((item) => item.uid === user.uid ? { ...item, role: e.target.value } : item) }))}><option>client</option><option>vendor</option><option>admin</option></select></td><td>{user.city}</td><td><StatusPill status={user.status}>{user.status}</StatusPill></td><td><button className="danger-button" type="button" onClick={() => setStore((current) => ({ ...current, users: current.users.map((item) => item.uid === user.uid ? { ...item, status: item.status === "blocked" ? "active" : "blocked" } : item) }))}>{user.status === "blocked" ? "Unblock" : "Block"}</button></td></tr>)}</tbody></table></section>;
+    return <section className="premium-card table-wrap"><table className="premium-table"><thead><tr><th>Имя</th><th>Роль</th><th>Город</th><th>Статус</th><th></th></tr></thead><tbody>{store.users.map((user) => <tr key={user.uid}><td>{user.name}</td><td><select className="premium-select" value={user.role === "admin" ? "client" : user.role} onChange={(e) => setStore((current) => ({ ...current, users: current.users.map((item) => item.uid === user.uid ? { ...item, role: e.target.value } : item) }))}><option value="client">client</option><option value="vendor">vendor</option></select></td><td>{user.city}</td><td><StatusPill status={user.status}>{user.status}</StatusPill></td><td><button className="danger-button" type="button" onClick={() => setStore((current) => ({ ...current, users: current.users.map((item) => item.uid === user.uid ? { ...item, status: item.status === "blocked" ? "active" : "blocked" } : item) }))}>{user.status === "blocked" ? "Unblock" : "Block"}</button></td></tr>)}</tbody></table><p className="muted" style={{ padding: 16, margin: 0 }}>Admin access is managed only with admins/uid=true in Firebase.</p></section>;
   }
 
   function renderVendors() {
@@ -1182,7 +1198,7 @@ export function InvitePage({ eventId }) {
   return (
     <main className="app-loader" style={{ padding: 18 }}>
       <section className="premium-card premium-card-inner" style={{ width: "min(760px, 96vw)", textAlign: "center" }}>
-        <img src="/images/toi-logo.png" alt="toi.kz" style={{ display: "block", margin: "0 auto 18px", width: 120, height: "auto" }} />
+        <img src="/icons/logo-nav.png" alt="toi.kz" style={{ display: "block", margin: "0 auto 18px", width: 96, height: 96, objectFit: "contain" }} />
         <h1 style={{ fontFamily: "Playfair Display, Georgia, serif", fontSize: "clamp(34px, 7vw, 62px)", margin: 0 }}>{invitation.bride || "Bride"} & {invitation.groom || "Groom"}</h1>
         <p className="muted" style={{ fontSize: 18 }}>{invitation.message || "Сізді қуанышымызға ортақтасуға шақырамыз."}</p>
         <div className="grid-3" style={{ marginTop: 24, textAlign: "left" }}>

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { CatalogPage } from "@/components/PlatformPages";
 
 export default function HallResultsPage() {
-  redirect("/menu/halls");
+  return <CatalogPage />;
 }

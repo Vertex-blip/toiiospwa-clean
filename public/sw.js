@@ -1,4 +1,4 @@
-const CACHE_NAME = "toikz-v2-secure";
+const CACHE_NAME = "toikz-v3-secure";
 const PRECACHE = ["/", "/manifest.json"];
 
 const isPrivatePath = (url) =>
@@ -10,6 +10,7 @@ const isPrivatePath = (url) =>
 
 const isFirebaseRequest = (url) =>
   url.hostname.includes("firebaseio.com") ||
+  url.hostname.includes("firebasedatabase.app") ||
   url.hostname.includes("googleapis.com") ||
   url.hostname.includes("firebaseapp.com") ||
   url.hostname.includes("firebasestorage.googleapis.com") ||
@@ -41,6 +42,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (url.hostname.includes("kaspersky-labs.com")) {
+    event.respondWith(fetch(request).catch(() => new Response("", { status: 204 })));
     return;
   }
 
@@ -50,7 +52,7 @@ self.addEventListener("fetch", (event) => {
     isPrivatePath(url) ||
     isFirebaseRequest(url)
   ) {
-    event.respondWith(fetch(request));
+    event.respondWith(fetch(request).catch(() => new Response("Network unavailable", { status: 503 })));
     return;
   }
 
@@ -64,7 +66,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(request).then((match) => match || caches.match("/")))
+        .catch(() => caches.match(request).then((match) => match || caches.match("/")).then((match) => match || new Response("Offline", { status: 503 })))
     );
     return;
   }
@@ -84,7 +86,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => cached);
+        .catch(() => cached || new Response("Offline", { status: 503 }));
 
       return cached || network;
     })
