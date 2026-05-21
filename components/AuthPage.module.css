@@ -8,7 +8,8 @@
   --line: rgba(113, 215, 255, 0.2);
   min-height: 100dvh;
   background:
-    linear-gradient(120deg, rgba(1, 7, 16, 0.9), rgba(2, 12, 28, 0.68), rgba(0, 0, 0, 0.88)),
+    radial-gradient(circle at 50% 8%, rgba(31, 183, 255, 0.16), transparent 30rem),
+    linear-gradient(120deg, rgba(1, 7, 16, 0.92), rgba(2, 12, 28, 0.58), rgba(0, 0, 0, 0.9)),
     url("/images/toi-login-bg.png");
   background-size: cover;
   background-position: center;
@@ -28,14 +29,16 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 12%, rgba(31, 183, 255, 0.18), transparent 36%),
-    linear-gradient(180deg, rgba(1, 7, 16, 0.1), rgba(1, 7, 16, 0.82));
+    radial-gradient(circle at 50% 10%, rgba(31, 183, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 72% 16%, rgba(255, 211, 154, 0.09), transparent 20%),
+    linear-gradient(180deg, rgba(1, 7, 16, 0.05), rgba(1, 7, 16, 0.84));
 }
 
 .shell {
   position: relative;
   z-index: 1;
   width: min(1040px, 100%);
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(340px, 1fr) minmax(390px, 470px);
   gap: 26px;
@@ -102,6 +105,7 @@
 
 .card {
   width: 100%;
+  min-width: 0;
   border-radius: 30px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035)), var(--panel);
   backdrop-filter: blur(24px);
@@ -323,6 +327,8 @@
   color: #07111f;
   font-size: 15px;
   font-weight: 850;
+  padding: 0 14px;
+  white-space: nowrap;
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
@@ -443,6 +449,7 @@
 
 .forgotShell {
   width: min(500px, 100%);
+  min-width: 0;
   position: relative;
   z-index: 1;
 }
@@ -571,10 +578,12 @@
 
   .shell,
   .forgotShell {
-    width: 100%;
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
   }
 
   .card {
+    max-width: 100%;
     border-radius: 24px;
     padding: 18px 15px 16px;
   }
@@ -625,6 +634,12 @@
     gap: 9px;
   }
 
+  .googleButton {
+    font-size: 14px;
+    gap: 8px;
+    overflow: hidden;
+  }
+
   .switchText {
     margin-top: 12px;
   }
@@ -662,5 +677,10 @@
   .backButton {
     min-height: 48px;
     height: 48px;
+  }
+
+  .googleButton {
+    font-size: 13px;
+    padding: 0 10px;
   }
 }
