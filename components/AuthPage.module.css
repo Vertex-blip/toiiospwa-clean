@@ -193,10 +193,18 @@
   padding: 7px;
   background: rgba(3, 9, 17, 0.82);
   border: 1px solid rgba(107, 216, 255, 0.32);
+  appearance: none;
+  display: block;
+  cursor: pointer;
   box-shadow:
     0 0 0 7px rgba(31, 183, 255, 0.045),
     0 0 42px rgba(31, 183, 255, 0.36),
     0 18px 42px rgba(0, 0, 0, 0.42);
+}
+
+.logoBadge:focus-visible {
+  outline: 2px solid rgba(107, 216, 255, 0.9);
+  outline-offset: 4px;
 }
 
 .logoText {
@@ -490,6 +498,7 @@
 
 .primaryButton,
 .secondaryButton,
+.googleButton,
 .backButton {
   width: 100%;
   border-radius: 17px;
@@ -533,6 +542,40 @@
   font-weight: 750;
 }
 
+.googleButton {
+  min-height: 56px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(113, 215, 255, 0.22);
+  color: white;
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.googleButton:hover {
+  border-color: rgba(107, 216, 255, 0.5);
+  background: rgba(31, 183, 255, 0.11);
+}
+
+.googleButton:disabled {
+  opacity: 0.68;
+  cursor: progress;
+}
+
+.googleMark {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #f8fbff;
+  color: #086fd2;
+  font-weight: 950;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 0 18px rgba(31, 183, 255, 0.22);
+}
+
 .secondaryButton:hover,
 .backButton:hover {
   border-color: rgba(107, 216, 255, 0.45);
@@ -550,18 +593,7 @@
 }
 
 .adminLink {
-  width: 100%;
-  margin-top: 16px;
-  border: 0;
-  background: transparent;
-  color: rgba(107, 216, 255, 0.62);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 750;
-  cursor: pointer;
+  display: none;
 }
 
 .divider {

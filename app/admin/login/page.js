@@ -1,5 +1,5 @@
-import { AdminLoginPage } from "@/components/PlatformPages";
+import { redirect } from "next/navigation";
 
 export default function AdminLoginRoute() {
-  return <AdminLoginPage />;
+  redirect("/");
 }

@@ -2,7 +2,7 @@
 
 import { ToastProvider, useToast } from "@/components/Toast";
 import styles from "@/components/AuthPage.module.css";
-import { auth } from "@/lib/firebase";
+import { auth, firebaseReady } from "@/lib/firebase";
 import { isValidEmail, normalizeEmail } from "@/lib/sanitize";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { ArrowLeft, Mail } from "lucide-react";
@@ -26,6 +26,12 @@ function ForgotInner() {
     }
 
     setLoading(true);
+    if (!firebaseReady || !auth) {
+      setLoading(false);
+      showToast("Firebase Auth не настроен");
+      return;
+    }
+
     try {
       await sendPasswordResetEmail(auth, safeEmail);
       setSent(true);

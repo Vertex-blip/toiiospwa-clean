@@ -19,15 +19,19 @@ import {
 } from "lucide-react";
 import {
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
   sendEmailVerification,
   sendPasswordResetEmail,
+  signInWithPopup,
   signInWithEmailAndPassword,
+  signOut,
   updateProfile,
 } from "firebase/auth";
 import { CATEGORIES, EVENT_TYPES, KZ_CITIES } from "@/lib/appData";
 import { useAppStore } from "@/lib/appStore";
 import { readUserProfile, saveUserProfile, saveVendorProfile } from "@/lib/firebaseData";
-import { auth } from "@/lib/firebase";
+import { auth, firebaseReady } from "@/lib/firebase";
+import { isAdmin } from "@/lib/roles";
 import { isValidEmail, isValidKazakhstanPhone, normalizeEmail, normalizePhone, sanitizeText } from "@/lib/sanitize";
 import { makeSessionUser, ROLE_ROUTES, setSession } from "@/lib/session";
 import styles from "./AuthPage.module.css";
@@ -54,6 +58,9 @@ function PasswordField({ value, onChange, placeholder, ariaLabel, visible, onTog
 
 function firebaseErrorMessage(error) {
   const code = error?.code || "";
+  if (code === "auth/popup-closed-by-user") return "Google вход отменен";
+  if (code === "auth/popup-blocked") return "Браузер заблокировал Google вход";
+  if (code === "auth/account-exists-with-different-credential") return "Этот email уже использует другой способ входа";
   if (code === "auth/operation-not-allowed") return "Email/password вход не включен в Firebase Authentication";
   if (code === "auth/configuration-not-found") return "Firebase Authentication не настроен для этого проекта";
   if (code === "auth/invalid-email") return "Введите корректный email";
@@ -92,6 +99,11 @@ export default function AuthPage({ initialTab = "login" }) {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [adminTapCount, setAdminTapCount] = useState(0);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -119,10 +131,32 @@ export default function AuthPage({ initialTab = "login" }) {
     setError(message);
   }
 
+  function ensureFirebaseAuth() {
+    if (firebaseReady && auth) return true;
+    setSubmitting(false);
+    setError("Firebase Auth не настроен. Проверьте NEXT_PUBLIC_FIREBASE_* переменные в Vercel.");
+    return false;
+  }
+
   function switchTab(tab) {
     setActiveTab(tab);
     setPhoneLoginMode(false);
+    setAdminUnlocked(false);
     resetMessages();
+  }
+
+  function handleLogoClick() {
+    if (adminUnlocked) return;
+    setAdminTapCount((count) => {
+      const nextCount = count + 1;
+      if (nextCount >= 4) {
+        setAdminUnlocked(true);
+        setPhoneLoginMode(false);
+        resetMessages();
+        return 0;
+      }
+      return nextCount;
+    });
   }
 
   function finishAuth(user, route) {
@@ -136,6 +170,7 @@ export default function AuthPage({ initialTab = "login" }) {
     e.preventDefault();
     setSubmitting(true);
     resetMessages();
+    if (!ensureFirebaseAuth()) return;
 
     const safeLoginId = sanitizeText(loginId, 254);
     if (!safeLoginId || !password) {
@@ -163,6 +198,12 @@ export default function AuthPage({ initialTab = "login" }) {
       const credential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const profile = await readUserProfile(credential.user.uid);
       const role = profile?.role || "client";
+      if (role === "admin") {
+        await signOut(auth).catch(() => {});
+        setSubmitting(false);
+        setError("Admin вход скрыт. Нажмите логотип TOI.KZ 4 раза.");
+        return;
+      }
       const profilePhone = profile?.phoneNumber || profile?.phone || credential.user.phoneNumber || "";
       const user = {
         uid: credential.user.uid,
@@ -188,6 +229,7 @@ export default function AuthPage({ initialTab = "login" }) {
     e.preventDefault();
     setSubmitting(true);
     resetMessages();
+    if (!ensureFirebaseAuth()) return;
 
     const safeName = sanitizeText(name, 80);
     const safeEmail = normalizeEmail(email);
@@ -313,6 +355,146 @@ export default function AuthPage({ initialTab = "login" }) {
     }
   }
 
+  async function handleGoogleLogin() {
+    setSubmitting(true);
+    resetMessages();
+    if (!ensureFirebaseAuth()) return;
+
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      const credential = await signInWithPopup(auth, provider);
+      const uid = credential.user.uid;
+
+      if (await isAdmin(uid)) {
+        await signOut(auth).catch(() => {});
+        setSubmitting(false);
+        setError("Admin вход скрыт. Нажмите логотип TOI.KZ 4 раза.");
+        return;
+      }
+
+      let profile = await readUserProfile(uid).catch(() => null);
+      if (!profile?.email && !profile?.name) {
+        const displayName = sanitizeText(credential.user.displayName || "TOI.KZ user", 80);
+        const role = accountType === "vendor" ? "vendor" : "client";
+        const payload = {
+          uid,
+          name: displayName,
+          email: normalizeEmail(credential.user.email || ""),
+          phone: normalizePhone(credential.user.phoneNumber || ""),
+          phoneNumber: normalizePhone(credential.user.phoneNumber || ""),
+          phoneNumberNormalized: normalizePhone(credential.user.phoneNumber || ""),
+          role,
+          city,
+          eventType: role === "client" ? eventType : "",
+          businessName: role === "vendor" ? displayName : "",
+          vendorCategory: role === "vendor" ? vendorCategory : "",
+          status: role === "vendor" ? "pendingApproval" : "active",
+          createdAt: Date.now(),
+        };
+
+        profile = await saveUserProfile(uid, payload);
+
+        if (role === "vendor") {
+          const vendorProfile = {
+            id: uid,
+            ownerId: uid,
+            businessName: displayName,
+            title: displayName,
+            category: vendorCategory,
+            city,
+            description: "New vendor profile is waiting for administrator approval.",
+            priceFrom: 0,
+            capacity: null,
+            rating: 0,
+            reviewsCount: 0,
+            verified: false,
+            featured: false,
+            status: "pending",
+            phone: normalizePhone(credential.user.phoneNumber || ""),
+            whatsapp: "",
+            instagram: "",
+            image: "/images/toi-login-bg.png",
+            features: [],
+            availableDates: [],
+            createdAt: new Date().toISOString(),
+          };
+          await saveVendorProfile(uid, vendorProfile).catch(() => {});
+          setStore((current) => ({
+            ...current,
+            vendors: [
+              vendorProfile,
+              ...current.vendors.filter((vendor) => vendor.ownerId !== uid),
+            ],
+          }));
+        }
+      }
+
+      const role = profile?.role === "vendor" ? "vendor" : "client";
+      const user = {
+        uid,
+        role,
+        name: profile?.name || credential.user.displayName || "TOI.KZ user",
+        phone: profile?.phoneNumber || profile?.phone || credential.user.phoneNumber || "",
+        email: credential.user.email || profile?.email || "",
+        emailVerified: credential.user.emailVerified,
+        city: profile?.city || city,
+        businessName: profile?.businessName || "",
+        status: profile?.status || (role === "vendor" ? "pendingApproval" : "active"),
+        createdAt: profile?.createdAt || Date.now(),
+      };
+
+      finishAuth(user, role === "vendor" ? "/vendor" : "/menu/home");
+    } catch (googleError) {
+      setSubmitting(false);
+      setError(firebaseErrorMessage(googleError));
+    }
+  }
+
+  async function handleAdminLogin(e) {
+    e.preventDefault();
+    setSubmitting(true);
+    resetMessages();
+    if (!ensureFirebaseAuth()) return;
+
+    const safeEmail = normalizeEmail(adminEmail);
+    if (!isValidEmail(safeEmail) || !adminPassword) {
+      setSubmitting(false);
+      setError("Введите admin email и пароль");
+      return;
+    }
+
+    try {
+      const credential = await signInWithEmailAndPassword(auth, safeEmail, adminPassword);
+      const allowed = await isAdmin(credential.user.uid);
+      if (!allowed) {
+        await signOut(auth).catch(() => {});
+        setSubmitting(false);
+        setError("Доступ запрещен. В Firebase должно быть admins/{uid}: true.");
+        return;
+      }
+
+      const profile = await readUserProfile(credential.user.uid).catch(() => null);
+      const user = {
+        uid: credential.user.uid,
+        role: "admin",
+        name: profile?.name || credential.user.displayName || "TOI.KZ Admin",
+        phone: profile?.phoneNumber || profile?.phone || credential.user.phoneNumber || "",
+        email: credential.user.email || safeEmail,
+        emailVerified: credential.user.emailVerified,
+        city: profile?.city || city,
+        businessName: profile?.businessName || "",
+        status: "active",
+        createdAt: profile?.createdAt || Date.now(),
+      };
+
+      finishAuth(user, "/admin");
+    } catch (adminError) {
+      setSubmitting(false);
+      setError(firebaseErrorMessage(adminError));
+    }
+  }
+
   function handlePhoneLoginStart() {
     setPhoneLoginMode(true);
     setError("");
@@ -356,6 +538,8 @@ export default function AuthPage({ initialTab = "login" }) {
       return;
     }
 
+    if (!ensureFirebaseAuth()) return;
+
     try {
       await sendPasswordResetEmail(auth, safeEmail);
       setError("");
@@ -394,9 +578,9 @@ export default function AuthPage({ initialTab = "login" }) {
         <section className={styles.card} aria-label="Авторизация toi.kz">
           <div className={styles.content}>
             <header className={styles.brand}>
-              <div className={styles.logoBadge} aria-hidden="true">
+              <button className={styles.logoBadge} type="button" onClick={handleLogoClick} aria-label="TOI.KZ">
                 <img className={styles.logoMark} src="/icons/toi-blue-logo.png" alt="" />
-              </div>
+              </button>
               <h1 className={styles.logoText}>TOI.KZ</h1>
               <div className={styles.ornamentLine} aria-hidden="true">
                 <span className={styles.diamond} />
@@ -404,6 +588,8 @@ export default function AuthPage({ initialTab = "login" }) {
               <p className={styles.tagline}>Сервис для вашего идеального тоя</p>
             </header>
 
+            {!adminUnlocked ? (
+              <>
             <div className={styles.tabs} role="tablist" aria-label="Тип формы">
               <button className={`${styles.tab} ${activeTab === "login" ? styles.tabActive : ""}`} type="button" role="tab" aria-selected={activeTab === "login"} onClick={() => switchTab("login")}>
                 Вход
@@ -431,8 +617,33 @@ export default function AuthPage({ initialTab = "login" }) {
                 {accountCopy.subtitle}
               </span>
             </div>
+              </>
+            ) : null}
 
-            {activeTab === "login" && !phoneLoginMode ? (
+            {adminUnlocked ? (
+              <div className={styles.formPanel} key="admin-login">
+                <div className={styles.formHeader}>
+                  <h2>Admin secure entry</h2>
+                  <p>Доступ только для аккаунта с Firebase Realtime Database admins/uid: true.</p>
+                </div>
+                {message}
+                <form className={styles.form} onSubmit={handleAdminLogin}>
+                  <div className={styles.fieldWrap}>
+                    <ShieldCheck className={styles.fieldIcon} size={20} aria-hidden="true" />
+                    <input className={styles.input} type="email" value={adminEmail} onChange={(e) => setAdminEmail(sanitizeText(e.target.value, 254))} placeholder="Admin email" aria-label="Admin email" autoComplete="username" />
+                  </div>
+                  <PasswordField value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="Admin password" ariaLabel="Admin password" visible={showAdminPassword} onToggle={() => setShowAdminPassword((value) => !value)} />
+                  <button className={styles.primaryButton} type="submit" disabled={submitting}>
+                    {submitting ? "Проверяем доступ..." : "Войти в admin panel"}
+                  </button>
+                  <button className={styles.backButton} type="button" onClick={() => { setAdminUnlocked(false); resetMessages(); }}>
+                    Вернуться к входу
+                  </button>
+                </form>
+              </div>
+            ) : null}
+
+            {!adminUnlocked && activeTab === "login" && !phoneLoginMode ? (
               <div className={styles.formPanel} key="login">
                 <div className={styles.formHeader}>
                   <h2>Войдите в свой аккаунт</h2>
@@ -454,6 +665,10 @@ export default function AuthPage({ initialTab = "login" }) {
                     {submitting ? "Входим..." : "Войти"}
                   </button>
                   <div className={styles.divider}>или</div>
+                  <button className={styles.googleButton} type="button" onClick={handleGoogleLogin} disabled={submitting}>
+                    <span className={styles.googleMark} aria-hidden="true">G</span>
+                    Войти через Google
+                  </button>
                   <button className={styles.secondaryButton} type="button" onClick={handlePhoneLoginStart}>
                     <Phone size={20} aria-hidden="true" />
                     Войти по номеру телефона - Coming soon
@@ -462,7 +677,7 @@ export default function AuthPage({ initialTab = "login" }) {
               </div>
             ) : null}
 
-            {activeTab === "login" && phoneLoginMode ? (
+            {!adminUnlocked && activeTab === "login" && phoneLoginMode ? (
               <div className={styles.formPanel} key="phone-login">
                 <div className={styles.formHeader}>
                   <h2>Вход по номеру телефона - Coming soon</h2>
@@ -485,7 +700,7 @@ export default function AuthPage({ initialTab = "login" }) {
               </div>
             ) : null}
 
-            {activeTab === "register" ? (
+            {!adminUnlocked && activeTab === "register" ? (
               <div className={styles.formPanel} key="register">
                 <div className={styles.formHeader}>
                   <h2>{accountType === "vendor" ? "Создайте vendor кабинет" : "Создайте аккаунт"}</h2>
