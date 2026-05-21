@@ -1,6 +1,7 @@
 "use client";
 
 import { ToastProvider, useToast } from "@/components/Toast";
+import styles from "@/components/AuthPage.module.css";
 import { auth } from "@/lib/firebase";
 import { isValidEmail, normalizeEmail } from "@/lib/sanitize";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -40,61 +41,70 @@ function ForgotInner() {
   }
 
   return (
-    <main className="app-loader" style={{ padding: 18 }}>
-      <section className="premium-card premium-card-inner" style={{ width: "min(520px, 94vw)" }}>
-        <button className="ghost-button" type="button" onClick={() => router.back()} style={{ marginBottom: 18 }}>
-          <ArrowLeft size={16} />
-          Назад
-        </button>
-        <div className="app-brand" style={{ marginBottom: 22 }}>
-          <img className="app-brand-logo" src="/icons/logo-nav.png" alt="toi.kz" />
-          <span>
-            <strong>TOI.KZ</strong>
-            <small>Восстановление доступа</small>
-          </span>
-        </div>
-
-        {sent ? (
-          <div className="page-stack">
-            <StatusLine tone="success" title="Письмо отправлено" text="Проверьте почту и папку “Спам”. Ссылка для сброса пароля будет внутри письма." />
-            <button className="premium-button" type="button" onClick={() => router.replace("/")}>
-              Вернуться ко входу
-            </button>
-          </div>
-        ) : (
-          <form className="page-stack" onSubmit={handleSend}>
-            <div>
-              <h1 style={{ margin: 0, fontFamily: "Playfair Display, Georgia, serif", fontSize: 34 }}>Восстановление пароля</h1>
-              <p className="muted">Введите email, указанный при регистрации. Мы отправим ссылку для сброса пароля.</p>
+    <main className={styles.page}>
+      <div className={styles.cinematicLayer} aria-hidden="true" />
+      <div className={styles.forgotShell}>
+        <section className={`${styles.card} ${styles.forgotCard}`} aria-label="Восстановление пароля TOI.KZ">
+          <div className={styles.content}>
+            <div className={styles.forgotTop}>
+              <button className={styles.backButton} type="button" onClick={() => router.back()}>
+                <ArrowLeft size={16} />
+                Назад
+              </button>
+              <div className={styles.forgotLogo}>
+                <img src="/icons/toi-blue-logo.png" alt="TOI.KZ" />
+                <span>
+                  <strong>TOI.KZ</strong>
+                  <small>Восстановление доступа</small>
+                </span>
+              </div>
             </div>
-            <label>
-              <span className="chip" style={{ marginBottom: 8 }}><Mail size={14} /> Email</span>
-              <input
-                className="premium-input"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value.slice(0, 254))}
-                placeholder="you@example.com"
-                aria-label="Email"
-                autoComplete="email"
-                autoCapitalize="none"
-              />
-            </label>
-            <button className="premium-button" type="submit" disabled={loading}>
-              {loading ? <span className="spinner" /> : "Отправить ссылку"}
-            </button>
-          </form>
-        )}
-      </section>
+
+            <header className={styles.formHeader}>
+              <p className={styles.eyebrow}>Secure reset</p>
+              <h1>Восстановление пароля</h1>
+              <p>Введите email, указанный при регистрации. Мы отправим ссылку для сброса пароля.</p>
+            </header>
+
+            {sent ? (
+              <div className={styles.form}>
+                <StatusLine title="Письмо отправлено" text="Проверьте почту и папку “Спам”. Ссылка для сброса пароля будет внутри письма." />
+                <button className={styles.primaryButton} type="button" onClick={() => router.replace("/")}>
+                  Вернуться ко входу
+                </button>
+              </div>
+            ) : (
+              <form className={styles.form} onSubmit={handleSend}>
+                <div className={styles.fieldWrap}>
+                  <Mail className={styles.fieldIcon} size={20} aria-hidden="true" />
+                  <input
+                    className={styles.input}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value.slice(0, 254))}
+                    placeholder="you@example.com"
+                    aria-label="Email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                  />
+                </div>
+                <button className={styles.primaryButton} type="submit" disabled={loading}>
+                  {loading ? <span className="spinner" /> : "Отправить ссылку"}
+                </button>
+              </form>
+            )}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
 
 function StatusLine({ title, text }) {
   return (
-    <div className="premium-card premium-card-inner" style={{ background: "rgba(34,197,94,0.08)" }}>
+    <div className={styles.statusBox}>
       <strong>{title}</strong>
-      <p className="muted" style={{ marginBottom: 0 }}>{text}</p>
+      <p>{text}</p>
     </div>
   );
 }

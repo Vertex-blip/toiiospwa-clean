@@ -3,17 +3,16 @@ import ClientBoot from "@/components/ClientBoot";
 import "./globals.css";
 
 export const metadata = {
-  title: "toi.kz — premium PWA для организации мероприятий",
+  title: "TOI.KZ — premium PWA для организации тоя",
   description: "Каталог услуг, бронирование, гости, бюджет и планирование тоя в Казахстане.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "toi.kz",
+    title: "TOI.KZ",
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
       { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
       { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -28,7 +27,7 @@ export const metadata = {
 };
 
 export const viewport = {
-  themeColor: "#080807",
+  themeColor: "#05070b",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -43,7 +42,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="toi.kz" />
+        <meta name="apple-mobile-web-app-title" content="TOI.KZ" />
         <meta name="format-detection" content="telephone=no" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png" />

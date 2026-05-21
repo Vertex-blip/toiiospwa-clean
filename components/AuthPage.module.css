@@ -1,50 +1,167 @@
 .page {
-  --gold: #d5ad62;
-  --gold-dark: #8a642e;
-  --gold-light: #f0d391;
-  --dark: #0f0f0e;
-  --dark-card: rgba(15, 15, 14, 0.82);
-  --text: #ffffff;
-  --muted: rgba(255, 255, 255, 0.62);
-  --border: rgba(212, 175, 96, 0.32);
+  --blue: #1fb7ff;
+  --blue-soft: #6bd8ff;
+  --blue-deep: #0569c9;
+  --ink: #05070b;
+  --navy: #07111f;
+  --panel: rgba(7, 13, 23, 0.76);
+  --panel-strong: rgba(8, 14, 24, 0.9);
+  --text: #f7fbff;
+  --muted: rgba(226, 239, 255, 0.66);
+  --line: rgba(113, 215, 255, 0.22);
   min-height: 100dvh;
-  background-image: url('/images/toi-login-bg.png');
+  background:
+    linear-gradient(120deg, rgba(1, 9, 19, 0.9), rgba(2, 12, 27, 0.62) 48%, rgba(0, 0, 0, 0.82)),
+    url("/images/toi-login-bg.png");
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 42px 20px 32px;
+  padding: 36px;
   position: relative;
   color: var(--text);
   overflow-x: hidden;
 }
 
-.overlay {
+.cinematicLayer {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(1px);
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(31, 183, 255, 0.18), transparent 28%, transparent 70%, rgba(31, 183, 255, 0.1)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(2, 10, 20, 0.94));
+}
+
+.cinematicLayer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(115deg, transparent 0 20%, rgba(60, 200, 255, 0.14) 21%, transparent 42%),
+    linear-gradient(75deg, transparent 0 55%, rgba(60, 200, 255, 0.08) 56%, transparent 78%);
+  mix-blend-mode: screen;
 }
 
 .shell {
   position: relative;
   z-index: 1;
-  width: min(720px, 92vw);
+  width: min(1160px, 100%);
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(430px, 520px);
+  gap: 28px;
+  align-items: center;
+}
+
+.storyPanel {
+  min-height: 720px;
+  border: 1px solid rgba(113, 215, 255, 0.16);
+  border-radius: 34px;
+  padding: 42px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(2, 8, 18, 0.48);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  position: relative;
+}
+
+.storyPanel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(31, 183, 255, 0.12), transparent 36%),
+    linear-gradient(0deg, rgba(2, 8, 18, 0.72), transparent 46%);
+  pointer-events: none;
+}
+
+.storyPanel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.storyLogo {
+  width: 108px;
+  height: 108px;
+  border-radius: 27px;
+  padding: 10px;
+  background: rgba(5, 12, 22, 0.72);
+  border: 1px solid rgba(107, 216, 255, 0.28);
+  box-shadow: 0 0 44px rgba(31, 183, 255, 0.28);
+  margin-bottom: auto;
+}
+
+.storyLogo img,
+.logoMark {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: var(--blue-soft);
+  text-transform: uppercase;
+  letter-spacing: 2.8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.storyPanel h2 {
+  margin: 0;
+  max-width: 560px;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 54px;
+  line-height: 1.02;
+  font-weight: 700;
+}
+
+.storyPanel p:not(.eyebrow) {
+  margin: 18px 0 0;
+  max-width: 540px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.previewStack {
+  margin-top: 34px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.previewStack span {
+  border: 1px solid rgba(113, 215, 255, 0.18);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(239, 248, 255, 0.82);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .card {
-  width: 720px;
-  max-width: 92vw;
-  min-height: 820px;
-  border-radius: 42px;
-  background: var(--dark-card);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(212, 175, 96, 0.35);
-  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.55);
-  padding: 70px 72px;
-  animation: cardIn 0.65s ease both;
+  width: 100%;
+  min-height: 660px;
+  border-radius: 34px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035)),
+    var(--panel);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(113, 215, 255, 0.22);
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.58),
+    0 0 0 1px rgba(255, 255, 255, 0.035) inset,
+    0 0 54px rgba(31, 183, 255, 0.12);
+  padding: 32px;
+  animation: cardIn 0.56s ease both;
   overflow: hidden;
   position: relative;
 }
@@ -55,8 +172,8 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 0%, rgba(240, 211, 145, 0.14), transparent 32%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent 26%);
+    linear-gradient(180deg, rgba(107, 216, 255, 0.14), transparent 24%),
+    linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.08), transparent 58%);
 }
 
 .content {
@@ -68,82 +185,36 @@
   text-align: center;
 }
 
-.brandLogo {
-  display: block;
-  width: min(210px, 64%);
-  height: auto;
-  margin: 0 auto 18px;
-  object-fit: contain;
-}
-
-.monogram {
-  width: 92px;
-  height: 92px;
-  margin: 0 auto 18px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid rgba(212, 175, 96, 0.42);
-  background:
-    linear-gradient(135deg, rgba(138, 100, 46, 0.28), rgba(240, 211, 145, 0.1)),
-    rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 0 24px rgba(213, 173, 98, 0.1), 0 18px 42px rgba(0, 0, 0, 0.32);
-  position: relative;
-}
-
-.monogram::before,
-.monogram::after {
-  content: "";
-  position: absolute;
-  width: 30px;
-  height: 30px;
-  border: 1px solid rgba(213, 173, 98, 0.44);
-  transform: rotate(45deg);
-}
-
-.monogram::before {
-  top: 12px;
-  left: 12px;
-  border-right: 0;
-  border-bottom: 0;
-}
-
-.monogram::after {
-  right: 12px;
-  bottom: 12px;
-  border-left: 0;
-  border-top: 0;
-}
-
-.monogram span {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 52px;
-  line-height: 1;
-  font-weight: 700;
-  color: transparent;
-  background: linear-gradient(135deg, #8a642e, #f0d391, #d5ad62);
-  background-clip: text;
-  -webkit-background-clip: text;
+.logoBadge {
+  width: 82px;
+  height: 82px;
+  margin: 0 auto 16px;
+  border-radius: 22px;
+  padding: 7px;
+  background: rgba(3, 9, 17, 0.82);
+  border: 1px solid rgba(107, 216, 255, 0.32);
+  box-shadow:
+    0 0 0 7px rgba(31, 183, 255, 0.045),
+    0 0 42px rgba(31, 183, 255, 0.36),
+    0 18px 42px rgba(0, 0, 0, 0.42);
 }
 
 .logoText {
   margin: 0;
   font-family: "Playfair Display", Georgia, serif;
-  font-size: 54px;
+  font-size: 32px;
   line-height: 1;
-  letter-spacing: 12px;
-  font-weight: 600;
-  color: transparent;
-  background: linear-gradient(135deg, #8a642e, #f0d391, #d5ad62);
-  background-clip: text;
-  -webkit-background-clip: text;
+  letter-spacing: 7px;
+  font-weight: 700;
+  color: #f8fcff;
+  text-shadow: 0 0 24px rgba(31, 183, 255, 0.42);
   text-align: center;
 }
 
 .ornamentLine {
-  width: 245px;
-  height: 18px;
-  margin: 22px auto 18px;
+  width: 180px;
+  height: 16px;
+  margin: 12px auto 10px;
   position: relative;
 }
 
@@ -152,9 +223,9 @@
   content: "";
   position: absolute;
   top: 50%;
-  width: calc(50% - 18px);
+  width: calc(50% - 16px);
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(213, 173, 98, 0.78));
+  background: linear-gradient(90deg, transparent, rgba(107, 216, 255, 0.78));
 }
 
 .ornamentLine::before {
@@ -170,43 +241,44 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   transform: translate(-50%, -50%) rotate(45deg);
-  border: 1px solid rgba(240, 211, 145, 0.9);
-  background: rgba(213, 173, 98, 0.24);
-  box-shadow: 0 0 18px rgba(213, 173, 98, 0.45);
+  border: 1px solid rgba(107, 216, 255, 0.92);
+  background: rgba(31, 183, 255, 0.22);
+  box-shadow: 0 0 18px rgba(31, 183, 255, 0.55);
 }
 
 .tagline {
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 3px;
-  font-size: 14px;
-  color: rgba(235, 220, 190, 0.65);
+  letter-spacing: 2.4px;
+  font-size: 11px;
+  color: rgba(226, 239, 255, 0.58);
   text-align: center;
 }
 
 .tabs {
-  height: 58px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.035);
+  height: 54px;
+  border-radius: 18px;
+  border: 1px solid rgba(113, 215, 255, 0.16);
+  background: rgba(1, 7, 14, 0.62);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 4px;
-  margin: 42px 0 34px;
+  padding: 5px;
+  margin: 22px 0 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .tab {
   border: 0;
-  border-radius: 12px;
-  color: rgba(255, 255, 255, 0.65);
+  border-radius: 14px;
+  color: rgba(226, 239, 255, 0.58);
   background: transparent;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 800;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
 }
 
 .tab:hover {
@@ -214,90 +286,100 @@
 }
 
 .tabActive {
-  background: linear-gradient(135deg, #8a642e, #d5ad62);
+  background: linear-gradient(135deg, #0569c9, #1fb7ff 55%, #7ce4ff);
   color: white;
-  box-shadow: 0 10px 30px rgba(196, 149, 72, 0.28);
+  box-shadow: 0 12px 28px rgba(31, 183, 255, 0.28);
 }
 
 .formPanel {
-  animation: formIn 0.35s ease both;
+  animation: formIn 0.3s ease both;
 }
 
 .roleSwitch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: -14px 0 18px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .roleOption {
-  min-height: 52px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.68);
+  min-height: 54px;
+  border: 1px solid rgba(113, 215, 255, 0.15);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(226, 239, 255, 0.68);
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 9px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 14px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
   transition: all 0.22s ease;
+}
+
+.roleOption svg {
+  flex: 0 0 auto;
 }
 
 .roleOption:hover,
 .roleActive {
-  border-color: rgba(213, 173, 98, 0.42);
-  background: rgba(213, 173, 98, 0.1);
+  border-color: rgba(107, 216, 255, 0.45);
+  background: rgba(31, 183, 255, 0.11);
   color: white;
+  box-shadow: 0 0 24px rgba(31, 183, 255, 0.12);
 }
 
 .accountHint {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
-  padding: 14px;
-  border: 1px solid rgba(212, 175, 96, 0.18);
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid rgba(113, 215, 255, 0.14);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.58);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(226, 239, 255, 0.58);
   font-size: 13px;
   line-height: 1.45;
 }
 
 .accountHint svg {
-  color: var(--gold);
+  color: var(--blue-soft);
   flex: 0 0 auto;
 }
 
 .accountHint strong {
   display: block;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.92);
   margin-bottom: 2px;
 }
 
 .formHeader {
-  margin-bottom: 26px;
-  text-align: center;
+  margin-bottom: 16px;
+  text-align: left;
 }
 
+.formHeader h1,
 .formHeader h2 {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.2;
-  font-weight: 700;
+  font-size: 27px;
+  line-height: 1.18;
+  font-weight: 850;
 }
 
 .formHeader p {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .form {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .gridFields {
@@ -312,27 +394,27 @@
 
 .fieldIcon {
   position: absolute;
-  left: 18px;
+  left: 17px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(213, 173, 98, 0.82);
+  color: rgba(107, 216, 255, 0.82);
   pointer-events: none;
 }
 
 .input {
-  height: 58px;
+  height: 54px;
   width: 100%;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(212, 175, 96, 0.28);
+  border-radius: 17px;
+  background: rgba(2, 8, 16, 0.68);
+  border: 1px solid rgba(113, 215, 255, 0.18);
   color: #ffffff;
   padding: 0 18px 0 52px;
-  font-size: 16px;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  font-size: 15px;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
 }
 
 .input option {
-  color: #141414;
+  color: #07111f;
 }
 
 .inputPlain {
@@ -344,37 +426,37 @@
 }
 
 .input::placeholder {
-  color: rgba(255, 255, 255, 0.46);
+  color: rgba(226, 239, 255, 0.38);
 }
 
 .input:focus {
-  border-color: rgba(213, 173, 98, 0.75);
-  box-shadow: 0 0 0 3px rgba(213, 173, 98, 0.12);
+  border-color: rgba(107, 216, 255, 0.82);
+  box-shadow: 0 0 0 4px rgba(31, 183, 255, 0.13), 0 0 28px rgba(31, 183, 255, 0.12);
   outline: none;
-  background: rgba(255, 255, 255, 0.052);
+  background: rgba(2, 12, 24, 0.86);
 }
 
 .input:-webkit-autofill,
 .input:-webkit-autofill:hover,
 .input:-webkit-autofill:focus {
   -webkit-text-fill-color: #ffffff;
-  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.045) inset;
+  -webkit-box-shadow: 0 0 0 1000px #07111f inset;
   caret-color: #ffffff;
   transition: background-color 9999s ease-in-out 0s;
 }
 
 .iconButton {
   position: absolute;
-  right: 12px;
+  right: 11px;
   top: 50%;
   transform: translateY(-50%);
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border: 0;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(226, 239, 255, 0.58);
   background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -382,153 +464,163 @@
 
 .iconButton:hover {
   color: white;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(31, 183, 255, 0.1);
 }
 
 .rowEnd {
   display: flex;
   justify-content: flex-end;
-  margin-top: -4px;
+  margin-top: -2px;
 }
 
 .linkButton {
   border: 0;
   padding: 0;
   background: transparent;
-  color: rgba(240, 211, 145, 0.8);
+  color: rgba(107, 216, 255, 0.86);
   cursor: pointer;
   font-size: 14px;
+  font-weight: 700;
   transition: color 0.2s ease;
 }
 
 .linkButton:hover {
-  color: var(--gold-light);
+  color: white;
 }
 
 .primaryButton,
 .secondaryButton,
 .backButton {
   width: 100%;
-  border-radius: 14px;
+  border-radius: 17px;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
 }
 
+.primaryButton {
+  height: 56px;
+  background: linear-gradient(135deg, #0357ba, #1fb7ff 58%, #a5ecff);
+  color: white;
+  font-weight: 850;
+  font-size: 17px;
+  border: none;
+  box-shadow: 0 18px 40px rgba(31, 183, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.primaryButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 48px rgba(31, 183, 255, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.primaryButton:disabled {
+  opacity: 0.72;
+  cursor: progress;
+  transform: none;
+}
+
+.secondaryButton {
+  min-height: 56px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(113, 215, 255, 0.16);
+  color: white;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.secondaryButton:hover,
+.backButton:hover {
+  border-color: rgba(107, 216, 255, 0.45);
+  background: rgba(31, 183, 255, 0.09);
+}
+
+.backButton {
+  height: 52px;
+  margin-top: 2px;
+  background: transparent;
+  border: 1px solid rgba(113, 215, 255, 0.15);
+  color: rgba(226, 239, 255, 0.72);
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .adminLink {
   width: 100%;
-  margin-top: 18px;
+  margin-top: 16px;
   border: 0;
   background: transparent;
-  color: rgba(240, 211, 145, 0.62);
+  color: rgba(107, 216, 255, 0.62);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   font-size: 13px;
+  font-weight: 750;
   cursor: pointer;
-}
-
-.primaryButton {
-  height: 64px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #8a642e, #d5ad62, #f0d391);
-  color: white;
-  font-weight: 600;
-  font-size: 18px;
-  border: none;
-  box-shadow: 0 14px 35px rgba(196, 149, 72, 0.28);
-}
-
-.primaryButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 18px 45px rgba(196, 149, 72, 0.36);
-}
-
-.secondaryButton {
-  height: 58px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: white;
-  font-size: 17px;
-}
-
-.secondaryButton:hover,
-.backButton:hover {
-  border-color: rgba(213, 173, 98, 0.45);
-  background: rgba(213, 173, 98, 0.08);
-}
-
-.backButton {
-  height: 54px;
-  margin-top: 4px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.74);
-  font-size: 16px;
 }
 
 .divider {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 16px;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 14px;
-  margin: 7px 0;
+  gap: 14px;
+  color: rgba(226, 239, 255, 0.34);
+  font-size: 13px;
+  margin: 4px 0;
 }
 
 .divider::before,
 .divider::after {
   content: "";
   height: 1px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(113, 215, 255, 0.14);
 }
 
 .message {
-  min-height: 28px;
-  margin-bottom: 8px;
+  min-height: 24px;
+  margin-bottom: 6px;
 }
 
 .alert {
-  border-radius: 14px;
+  border-radius: 15px;
   padding: 12px 14px;
   font-size: 14px;
   line-height: 1.35;
-  animation: fadeIn 0.25s ease both;
+  animation: fadeIn 0.22s ease both;
 }
 
 .error {
-  color: #ffd7d7;
-  background: rgba(170, 32, 32, 0.16);
-  border: 1px solid rgba(255, 120, 120, 0.2);
+  color: #ffd9e0;
+  background: rgba(225, 29, 72, 0.16);
+  border: 1px solid rgba(255, 113, 141, 0.24);
+  box-shadow: 0 0 22px rgba(225, 29, 72, 0.08);
 }
 
 .success {
-  color: #f8e7b6;
-  background: rgba(213, 173, 98, 0.13);
-  border: 1px solid rgba(213, 173, 98, 0.24);
+  color: #d8f8ff;
+  background: rgba(31, 183, 255, 0.12);
+  border: 1px solid rgba(107, 216, 255, 0.24);
 }
 
 .otpInput {
   text-align: center;
   letter-spacing: 8px;
-  font-weight: 700;
+  font-weight: 800;
   padding-left: 18px;
 }
 
 .features {
-  display: grid;
+  display: none;
   grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-  margin-top: 38px;
-  padding-top: 30px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(113, 215, 255, 0.12);
 }
 
 .feature {
@@ -536,46 +628,117 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 10px;
+  gap: 9px;
 }
 
 .featureIcon {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  border: 1px solid rgba(212, 175, 96, 0.35);
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  border: 1px solid rgba(113, 215, 255, 0.2);
   display: grid;
   place-items: center;
-  color: var(--gold);
-  background: rgba(255, 255, 255, 0.025);
+  color: var(--blue-soft);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .featureTitle {
   display: block;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .featureSubtitle {
   display: block;
-  margin-top: 4px;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 13px;
+  margin-top: 3px;
+  color: rgba(226, 239, 255, 0.5);
+  font-size: 12px;
   line-height: 1.35;
 }
 
 .footer {
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 14px;
+  grid-column: 1 / -1;
+  color: rgba(226, 239, 255, 0.38);
+  font-size: 13px;
   text-align: center;
-  margin-top: 24px;
+  margin-top: -10px;
+}
+
+.forgotShell {
+  width: min(520px, 100%);
+  position: relative;
+  z-index: 1;
+}
+
+.forgotCard {
+  min-height: auto;
+}
+
+.forgotTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.forgotTop .backButton {
+  width: auto;
+  min-width: 116px;
+  padding: 0 16px;
+}
+
+.forgotLogo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+}
+
+.forgotLogo img {
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
+  box-shadow: 0 0 24px rgba(31, 183, 255, 0.26);
+}
+
+.forgotLogo strong {
+  display: block;
+  letter-spacing: 4px;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 20px;
+}
+
+.forgotLogo small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.statusBox {
+  border: 1px solid rgba(107, 216, 255, 0.2);
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(31, 183, 255, 0.09);
+}
+
+.statusBox strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.statusBox p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 @keyframes cardIn {
   from {
     opacity: 0;
-    transform: scale(0.975) translateY(18px);
+    transform: scale(0.982) translateY(16px);
   }
   to {
     opacity: 1;
@@ -586,7 +749,7 @@
 @keyframes formIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -603,75 +766,78 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 980px) {
   .page {
-    min-height: 100dvh;
     align-items: flex-start;
-    padding: max(18px, env(safe-area-inset-top)) 0 max(20px, env(safe-area-inset-bottom));
+    padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
   }
 
   .shell {
-    width: 100%;
-    max-width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: 1fr;
+    width: min(540px, 100%);
+  }
+
+  .storyPanel {
+    display: none;
   }
 
   .card {
-    width: 92vw;
     min-height: auto;
-    border-radius: 32px;
-    padding: 36px 24px;
+    border-radius: 30px;
+    padding: 30px 24px 24px;
   }
 
-  .brandLogo {
-    width: 170px;
-    max-width: 56%;
-    margin-bottom: 14px;
+  .footer {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .page {
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    background-position: center top;
   }
 
-  .ornamentLine {
-    width: 200px;
-    margin: 18px auto 16px;
+  .shell,
+  .forgotShell {
+    width: 100%;
   }
 
-  .tagline {
-    font-size: 11px;
-    letter-spacing: 2.1px;
-    line-height: 1.5;
+  .card {
+    border-radius: 26px;
+    padding: 24px 18px 20px;
   }
 
-  .monogram {
-    width: 76px;
-    height: 76px;
-  }
-
-  .monogram span {
-    font-size: 42px;
+  .logoBadge {
+    width: 84px;
+    height: 84px;
+    border-radius: 23px;
+    margin-bottom: 12px;
   }
 
   .logoText {
-    font-size: 42px;
-    letter-spacing: 8px;
+    font-size: 30px;
+    letter-spacing: 5px;
+  }
+
+  .ornamentLine {
+    width: 150px;
+    margin: 12px auto 10px;
+  }
+
+  .tagline {
+    font-size: 10px;
+    letter-spacing: 1.6px;
+    line-height: 1.45;
   }
 
   .tabs {
-    margin: 30px 0 26px;
+    height: 52px;
+    margin: 22px 0 16px;
   }
 
-  .formHeader h2 {
-    font-size: 23px;
-  }
-
-  .formHeader p {
+  .tab {
     font-size: 14px;
-  }
-
-  .features {
-    gap: 10px;
-    margin-top: 30px;
-    padding-top: 24px;
   }
 
   .roleSwitch,
@@ -680,101 +846,7 @@
   }
 
   .roleOption {
-    justify-content: flex-start;
-    padding: 0 16px;
-  }
-
-  .featureIcon {
-    width: 48px;
-    height: 48px;
-  }
-
-  .featureTitle {
-    font-size: 13px;
-  }
-
-  .featureSubtitle {
-    font-size: 12px;
-  }
-
-  .footer {
-    width: 92vw;
-    font-size: 12px;
-    line-height: 1.5;
-  }
-}
-
-@media (max-width: 480px) {
-  .page {
-    min-height: 100dvh;
-    padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
-    align-items: flex-start;
-  }
-
-  .shell {
-    width: 100%;
-  }
-
-  .card {
-    width: 100%;
-    max-width: 430px;
-    min-height: auto;
-    border-radius: 28px;
-    padding: 28px 20px 22px;
-  }
-
-  .brandLogo {
-    width: 150px;
-    max-width: 58%;
-    margin-bottom: 12px;
-  }
-
-  .monogram {
-    width: 68px;
-    height: 68px;
-    margin-bottom: 12px;
-  }
-
-  .monogram span {
-    font-size: 38px;
-  }
-
-  .logoText {
-    font-size: 34px;
-    letter-spacing: 6px;
-  }
-
-  .ornamentLine {
-    width: 160px;
-    height: 14px;
-    margin: 10px auto 10px;
-  }
-
-  .tagline {
-    font-size: 11px;
-    letter-spacing: 2px;
-    line-height: 1.5;
-  }
-
-  .tabs {
-    height: 52px;
-    margin: 20px 0 16px;
-    border-radius: 15px;
-  }
-
-  .tab {
-    font-size: 14px;
-  }
-
-  .roleSwitch {
-    gap: 8px;
-    margin: 0 0 12px;
-  }
-
-  .roleOption {
-    min-height: 44px;
-    border-radius: 14px;
-    font-size: 12px;
+    min-height: 50px;
   }
 
   .accountHint {
@@ -782,82 +854,65 @@
   }
 
   .formHeader {
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+    text-align: center;
   }
 
+  .formHeader h1,
   .formHeader h2 {
-    font-size: 25px;
-    line-height: 1.1;
+    font-size: 24px;
   }
 
   .formHeader p {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .form {
-    gap: 12px;
-  }
-
-  .message {
-    min-height: 0;
-    margin-bottom: 8px;
+    gap: 11px;
   }
 
   .input {
-    height: 56px;
-    border-radius: 18px;
+    height: 55px;
     font-size: 15px;
   }
 
   .primaryButton {
     height: 58px;
-    border-radius: 18px;
     font-size: 16px;
   }
 
   .secondaryButton {
-    height: 54px;
-    border-radius: 18px;
-    font-size: 15px;
-  }
-
-  .divider {
-    margin: 2px 0;
-  }
-
-  .adminLink {
-    margin-top: 10px;
+    min-height: 52px;
+    font-size: 14px;
   }
 
   .features {
     display: none;
   }
 
-  .footer {
-    margin-top: 12px;
+  .forgotTop {
+    align-items: flex-start;
+    flex-direction: column-reverse;
   }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 360px) {
   .card {
-    padding: 22px 16px 18px;
-    border-radius: 24px;
-  }
-
-  .brandLogo {
-    width: 132px;
+    padding: 20px 14px 18px;
+    border-radius: 22px;
   }
 
   .logoText {
-    font-size: 30px;
-    letter-spacing: 5px;
+    font-size: 27px;
+    letter-spacing: 4px;
   }
 
-  .tagline {
-    font-size: 10px;
-  }
-
+  .formHeader h1,
   .formHeader h2 {
     font-size: 22px;
+  }
+
+  .roleOption {
+    font-size: 12px;
   }
 }

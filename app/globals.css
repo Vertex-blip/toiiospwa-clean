@@ -148,8 +148,10 @@ img {
   width: 46px;
   height: 46px;
   object-fit: contain;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(213, 173, 98, 0.12), transparent 68%);
+  border-radius: 13px;
+  background: rgba(4, 10, 18, 0.82);
+  border: 1px solid rgba(31, 183, 255, 0.28);
+  box-shadow: 0 0 22px rgba(31, 183, 255, 0.18);
 }
 
 .app-brand strong {

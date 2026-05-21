@@ -1,6 +1,6 @@
 {
-  "name": "toi.kz",
-  "short_name": "toi.kz",
+  "name": "TOI.KZ",
+  "short_name": "TOI.KZ",
   "description": "Premium PWA для организации тоя и мероприятий в Казахстане",
   "id": "/",
   "start_url": "/",
@@ -8,8 +8,8 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
-  "background_color": "#080807",
-  "theme_color": "#080807",
+  "background_color": "#05070b",
+  "theme_color": "#05070b",
   "lang": "ru",
   "categories": ["lifestyle", "productivity", "business"],
   "icons": [

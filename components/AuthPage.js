@@ -376,12 +376,27 @@ export default function AuthPage({ initialTab = "login" }) {
 
   return (
     <main className={styles.page}>
-      <div className={styles.overlay} />
+      <div className={styles.cinematicLayer} aria-hidden="true" />
       <div className={styles.shell}>
+        <aside className={styles.storyPanel} aria-label="TOI.KZ premium wedding platform">
+          <div className={styles.storyLogo}>
+            <img src="/icons/toi-blue-logo.png" alt="" />
+          </div>
+          <p className={styles.eyebrow}>Premium wedding PWA</p>
+          <h2>Тойды басқарудың жаңа деңгейі</h2>
+          <p>Қонақтар, бюджет, бронь және vendor сервистері бір қауіпсіз TOI.KZ кеңістігінде.</p>
+          <div className={styles.previewStack} aria-hidden="true">
+            <span>Login</span>
+            <span>Register</span>
+            <span>Password reset</span>
+          </div>
+        </aside>
         <section className={styles.card} aria-label="Авторизация toi.kz">
           <div className={styles.content}>
             <header className={styles.brand}>
-              <div className={styles.monogram} aria-hidden="true"><span>T</span></div>
+              <div className={styles.logoBadge} aria-hidden="true">
+                <img className={styles.logoMark} src="/icons/toi-blue-logo.png" alt="" />
+              </div>
               <h1 className={styles.logoText}>TOI.KZ</h1>
               <div className={styles.ornamentLine} aria-hidden="true">
                 <span className={styles.diamond} />
