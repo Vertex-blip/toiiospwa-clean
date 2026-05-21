@@ -16,6 +16,14 @@ export function useRequireAuth({ allowedRoles = ["client", "vendor", "admin"], r
   useEffect(() => {
     let disposed = false;
 
+    if (!auth) {
+      clearSession();
+      setUser(null);
+      setChecking(false);
+      router.replace(redirectTo);
+      return undefined;
+    }
+
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
       if (disposed) return;
 
@@ -31,14 +39,14 @@ export function useRequireAuth({ allowedRoles = ["client", "vendor", "admin"], r
       if (!firebaseUser?.email && firebaseUser?.role !== "admin") {
         firebaseUser = await saveUserProfile(currentUser.uid, {
           uid: currentUser.uid,
-          role: "client",
+          role: "",
           name: currentUser.displayName || "toi.kz user",
           phone: currentUser.phoneNumber || "",
           email: currentUser.email || "",
           status: "active",
         }).catch(() => ({
           uid: currentUser.uid,
-          role: "client",
+          role: "",
           name: currentUser.displayName || "toi.kz user",
           phone: currentUser.phoneNumber || "",
           email: currentUser.email || "",

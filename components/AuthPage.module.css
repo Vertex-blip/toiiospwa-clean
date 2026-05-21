@@ -1,27 +1,23 @@
 .page {
   --blue: #1fb7ff;
-  --blue-soft: #6bd8ff;
-  --blue-deep: #0569c9;
+  --blue-soft: #7fdfff;
   --ink: #05070b;
-  --navy: #07111f;
-  --panel: rgba(7, 13, 23, 0.76);
-  --panel-strong: rgba(8, 14, 24, 0.9);
+  --panel: rgba(6, 12, 22, 0.78);
   --text: #f7fbff;
   --muted: rgba(226, 239, 255, 0.66);
-  --line: rgba(113, 215, 255, 0.22);
+  --line: rgba(113, 215, 255, 0.2);
   min-height: 100dvh;
   background:
-    linear-gradient(120deg, rgba(1, 9, 19, 0.9), rgba(2, 12, 27, 0.62) 48%, rgba(0, 0, 0, 0.82)),
+    linear-gradient(120deg, rgba(1, 7, 16, 0.9), rgba(2, 12, 28, 0.68), rgba(0, 0, 0, 0.88)),
     url("/images/toi-login-bg.png");
   background-size: cover;
   background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 36px;
-  position: relative;
+  display: grid;
+  place-items: center;
+  padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
   color: var(--text);
   overflow-x: hidden;
+  position: relative;
 }
 
 .cinematicLayer {
@@ -29,70 +25,41 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(31, 183, 255, 0.18), transparent 28%, transparent 70%, rgba(31, 183, 255, 0.1)),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(2, 10, 20, 0.94));
-}
-
-.cinematicLayer::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(115deg, transparent 0 20%, rgba(60, 200, 255, 0.14) 21%, transparent 42%),
-    linear-gradient(75deg, transparent 0 55%, rgba(60, 200, 255, 0.08) 56%, transparent 78%);
-  mix-blend-mode: screen;
+    radial-gradient(circle at 50% 12%, rgba(31, 183, 255, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(1, 7, 16, 0.1), rgba(1, 7, 16, 0.82));
 }
 
 .shell {
   position: relative;
   z-index: 1;
-  width: min(1160px, 100%);
+  width: min(1040px, 100%);
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(430px, 520px);
-  gap: 28px;
+  grid-template-columns: minmax(340px, 1fr) minmax(390px, 470px);
+  gap: 26px;
   align-items: center;
 }
 
 .storyPanel {
-  min-height: 720px;
-  border: 1px solid rgba(113, 215, 255, 0.16);
-  border-radius: 34px;
-  padding: 42px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    rgba(2, 8, 18, 0.48);
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  min-height: 620px;
+  border-radius: 30px;
+  border: 1px solid rgba(113, 215, 255, 0.14);
+  padding: 38px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)), rgba(2, 8, 18, 0.48);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(18px);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  overflow: hidden;
-  position: relative;
-}
-
-.storyPanel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(31, 183, 255, 0.12), transparent 36%),
-    linear-gradient(0deg, rgba(2, 8, 18, 0.72), transparent 46%);
-  pointer-events: none;
-}
-
-.storyPanel > * {
-  position: relative;
-  z-index: 1;
 }
 
 .storyLogo {
-  width: 108px;
-  height: 108px;
-  border-radius: 27px;
-  padding: 10px;
-  background: rgba(5, 12, 22, 0.72);
-  border: 1px solid rgba(107, 216, 255, 0.28);
-  box-shadow: 0 0 44px rgba(31, 183, 255, 0.28);
+  width: 98px;
+  height: 98px;
+  border-radius: 25px;
+  padding: 9px;
+  background: rgba(5, 12, 22, 0.75);
+  border: 1px solid rgba(107, 216, 255, 0.25);
+  box-shadow: 0 0 44px rgba(31, 183, 255, 0.25);
   margin-bottom: auto;
 }
 
@@ -108,62 +75,39 @@
   margin: 0 0 14px;
   color: var(--blue-soft);
   text-transform: uppercase;
-  letter-spacing: 2.8px;
+  letter-spacing: 2.6px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .storyPanel h2 {
   margin: 0;
-  max-width: 560px;
+  max-width: 520px;
   font-family: "Playfair Display", Georgia, serif;
-  font-size: 54px;
-  line-height: 1.02;
-  font-weight: 700;
+  font-size: 50px;
+  line-height: 1.03;
+  font-weight: 750;
 }
 
 .storyPanel p:not(.eyebrow) {
   margin: 18px 0 0;
-  max-width: 540px;
+  max-width: 520px;
   color: var(--muted);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.7;
-}
-
-.previewStack {
-  margin-top: 34px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.previewStack span {
-  border: 1px solid rgba(113, 215, 255, 0.18);
-  border-radius: 999px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.045);
-  color: rgba(239, 248, 255, 0.82);
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .card {
   width: 100%;
-  min-height: 660px;
-  border-radius: 34px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035)),
-    var(--panel);
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035)), var(--panel);
   backdrop-filter: blur(24px);
   border: 1px solid rgba(113, 215, 255, 0.22);
-  box-shadow:
-    0 28px 90px rgba(0, 0, 0, 0.58),
-    0 0 0 1px rgba(255, 255, 255, 0.035) inset,
-    0 0 54px rgba(31, 183, 255, 0.12);
-  padding: 32px;
-  animation: cardIn 0.56s ease both;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.58), 0 0 52px rgba(31, 183, 255, 0.13);
+  padding: 28px;
   overflow: hidden;
   position: relative;
+  animation: cardIn 0.45s ease both;
 }
 
 .card::before {
@@ -171,9 +115,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(107, 216, 255, 0.14), transparent 24%),
-    linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.08), transparent 58%);
+  background: linear-gradient(180deg, rgba(107, 216, 255, 0.13), transparent 24%);
 }
 
 .content {
@@ -183,23 +125,21 @@
 
 .brand {
   text-align: center;
+  margin-bottom: 22px;
 }
 
 .logoBadge {
-  width: 82px;
-  height: 82px;
-  margin: 0 auto 16px;
-  border-radius: 22px;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 12px;
+  border-radius: 21px;
   padding: 7px;
-  background: rgba(3, 9, 17, 0.82);
+  background: rgba(3, 9, 17, 0.86);
   border: 1px solid rgba(107, 216, 255, 0.32);
   appearance: none;
   display: block;
   cursor: pointer;
-  box-shadow:
-    0 0 0 7px rgba(31, 183, 255, 0.045),
-    0 0 42px rgba(31, 183, 255, 0.36),
-    0 18px 42px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 0 0 7px rgba(31, 183, 255, 0.04), 0 0 38px rgba(31, 183, 255, 0.35), 0 18px 38px rgba(0, 0, 0, 0.42);
 }
 
 .logoBadge:focus-visible {
@@ -210,190 +150,49 @@
 .logoText {
   margin: 0;
   font-family: "Playfair Display", Georgia, serif;
-  font-size: 32px;
+  font-size: 30px;
   line-height: 1;
-  letter-spacing: 7px;
-  font-weight: 700;
-  color: #f8fcff;
-  text-shadow: 0 0 24px rgba(31, 183, 255, 0.42);
-  text-align: center;
-}
-
-.ornamentLine {
-  width: 180px;
-  height: 16px;
-  margin: 12px auto 10px;
-  position: relative;
-}
-
-.ornamentLine::before,
-.ornamentLine::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: calc(50% - 16px);
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(107, 216, 255, 0.78));
-}
-
-.ornamentLine::before {
-  left: 0;
-}
-
-.ornamentLine::after {
-  right: 0;
-  transform: scaleX(-1);
-}
-
-.diamond {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 10px;
-  height: 10px;
-  transform: translate(-50%, -50%) rotate(45deg);
-  border: 1px solid rgba(107, 216, 255, 0.92);
-  background: rgba(31, 183, 255, 0.22);
-  box-shadow: 0 0 18px rgba(31, 183, 255, 0.55);
+  letter-spacing: 6px;
+  font-weight: 750;
+  text-shadow: 0 0 22px rgba(31, 183, 255, 0.4);
 }
 
 .tagline {
-  margin: 0;
+  margin: 8px 0 0;
   text-transform: uppercase;
-  letter-spacing: 2.4px;
-  font-size: 11px;
-  color: rgba(226, 239, 255, 0.58);
-  text-align: center;
-}
-
-.tabs {
-  height: 54px;
-  border-radius: 18px;
-  border: 1px solid rgba(113, 215, 255, 0.16);
-  background: rgba(1, 7, 14, 0.62);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 5px;
-  margin: 22px 0 16px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.tab {
-  border: 0;
-  border-radius: 14px;
-  color: rgba(226, 239, 255, 0.58);
-  background: transparent;
-  font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
-}
-
-.tab:hover {
-  color: white;
-}
-
-.tabActive {
-  background: linear-gradient(135deg, #0569c9, #1fb7ff 55%, #7ce4ff);
-  color: white;
-  box-shadow: 0 12px 28px rgba(31, 183, 255, 0.28);
+  letter-spacing: 2px;
+  font-size: 10px;
+  color: rgba(226, 239, 255, 0.56);
 }
 
 .formPanel {
-  animation: formIn 0.3s ease both;
-}
-
-.roleSwitch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.roleOption {
-  min-height: 54px;
-  border: 1px solid rgba(113, 215, 255, 0.15);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.035);
-  color: rgba(226, 239, 255, 0.68);
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 800;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.22s ease;
-}
-
-.roleOption svg {
-  flex: 0 0 auto;
-}
-
-.roleOption:hover,
-.roleActive {
-  border-color: rgba(107, 216, 255, 0.45);
-  background: rgba(31, 183, 255, 0.11);
-  color: white;
-  box-shadow: 0 0 24px rgba(31, 183, 255, 0.12);
-}
-
-.accountHint {
-  display: none;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 12px;
-  border: 1px solid rgba(113, 215, 255, 0.14);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.035);
-  color: rgba(226, 239, 255, 0.58);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.accountHint svg {
-  color: var(--blue-soft);
-  flex: 0 0 auto;
-}
-
-.accountHint strong {
-  display: block;
-  color: rgba(255, 255, 255, 0.92);
-  margin-bottom: 2px;
+  animation: formIn 0.26s ease both;
 }
 
 .formHeader {
-  margin-bottom: 16px;
-  text-align: left;
+  margin-bottom: 14px;
+  text-align: center;
 }
 
 .formHeader h1,
 .formHeader h2 {
   margin: 0;
-  font-size: 27px;
-  line-height: 1.18;
+  font-size: 25px;
+  line-height: 1.16;
   font-weight: 850;
 }
 
 .formHeader p {
-  margin: 8px 0 0;
+  margin: 7px auto 0;
+  max-width: 340px;
   color: var(--muted);
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 
 .form {
   display: grid;
-  gap: 12px;
-}
-
-.gridFields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .fieldWrap {
@@ -402,7 +201,7 @@
 
 .fieldIcon {
   position: absolute;
-  left: 17px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
   color: rgba(107, 216, 255, 0.82);
@@ -410,27 +209,19 @@
 }
 
 .input {
-  height: 54px;
+  height: 52px;
   width: 100%;
-  border-radius: 17px;
-  background: rgba(2, 8, 16, 0.68);
+  border-radius: 16px;
+  background: rgba(2, 8, 16, 0.7);
   border: 1px solid rgba(113, 215, 255, 0.18);
-  color: #ffffff;
-  padding: 0 18px 0 52px;
+  color: #fff;
+  padding: 0 16px 0 50px;
   font-size: 15px;
-  transition: border-color 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
-}
-
-.input option {
-  color: #07111f;
-}
-
-.inputPlain {
-  padding-left: 18px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .inputWithToggle {
-  padding-right: 56px;
+  padding-right: 54px;
 }
 
 .input::placeholder {
@@ -441,25 +232,25 @@
   border-color: rgba(107, 216, 255, 0.82);
   box-shadow: 0 0 0 4px rgba(31, 183, 255, 0.13), 0 0 28px rgba(31, 183, 255, 0.12);
   outline: none;
-  background: rgba(2, 12, 24, 0.86);
+  background: rgba(2, 12, 24, 0.88);
 }
 
 .input:-webkit-autofill,
 .input:-webkit-autofill:hover,
 .input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #ffffff;
+  -webkit-text-fill-color: #fff;
   -webkit-box-shadow: 0 0 0 1000px #07111f inset;
-  caret-color: #ffffff;
+  caret-color: #fff;
   transition: background-color 9999s ease-in-out 0s;
 }
 
 .iconButton {
   position: absolute;
-  right: 11px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border: 0;
   border-radius: 50%;
   display: grid;
@@ -467,170 +258,133 @@
   color: rgba(226, 239, 255, 0.58);
   background: transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.iconButton:hover {
-  color: white;
-  background: rgba(31, 183, 255, 0.1);
 }
 
 .rowEnd {
   display: flex;
   justify-content: flex-end;
-  margin-top: -2px;
+  margin-top: -1px;
 }
 
-.linkButton {
+.linkButton,
+.switchText button {
   border: 0;
   padding: 0;
   background: transparent;
-  color: rgba(107, 216, 255, 0.86);
+  color: rgba(107, 216, 255, 0.9);
   cursor: pointer;
   font-size: 14px;
-  font-weight: 700;
-  transition: color 0.2s ease;
-}
-
-.linkButton:hover {
-  color: white;
+  font-weight: 750;
 }
 
 .primaryButton,
-.secondaryButton,
 .googleButton,
 .backButton {
   width: 100%;
-  border-radius: 17px;
+  min-height: 52px;
+  border-radius: 16px;
   font-family: inherit;
   cursor: pointer;
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .primaryButton {
-  height: 56px;
+  border: 0;
   background: linear-gradient(135deg, #0357ba, #1fb7ff 58%, #a5ecff);
-  color: white;
+  color: #fff;
   font-weight: 850;
-  font-size: 17px;
-  border: none;
-  box-shadow: 0 18px 40px rgba(31, 183, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  font-size: 16px;
+  box-shadow: 0 16px 34px rgba(31, 183, 255, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.primaryButton:hover {
+.primaryButton:hover,
+.googleButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 22px 48px rgba(31, 183, 255, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 
-.primaryButton:disabled {
-  opacity: 0.72;
+.primaryButton:disabled,
+.googleButton:disabled,
+.roleChoice:disabled {
+  opacity: 0.68;
   cursor: progress;
   transform: none;
 }
 
-.secondaryButton {
-  min-height: 56px;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.035);
+.googleButton {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  color: #07111f;
+  font-size: 15px;
+  font-weight: 850;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.googleIcon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.backButton {
   border: 1px solid rgba(113, 215, 255, 0.16);
-  color: white;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(226, 239, 255, 0.75);
   font-size: 15px;
   font-weight: 750;
 }
 
-.googleButton {
-  min-height: 56px;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.075);
-  border: 1px solid rgba(113, 215, 255, 0.22);
-  color: white;
-  font-size: 15px;
-  font-weight: 800;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+.switchText {
+  margin: 14px 0 0;
+  text-align: center;
+  color: rgba(226, 239, 255, 0.62);
+  font-size: 14px;
 }
 
-.googleButton:hover {
-  border-color: rgba(107, 216, 255, 0.5);
-  background: rgba(31, 183, 255, 0.11);
-}
-
-.googleButton:disabled {
-  opacity: 0.68;
-  cursor: progress;
-}
-
-.googleMark {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+.roleChoiceGrid {
   display: grid;
-  place-items: center;
-  background: #f8fbff;
-  color: #086fd2;
-  font-weight: 950;
-  font-family: Arial, sans-serif;
-  box-shadow: 0 0 18px rgba(31, 183, 255, 0.22);
+  gap: 12px;
 }
 
-.secondaryButton:hover,
-.backButton:hover {
-  border-color: rgba(107, 216, 255, 0.45);
-  background: rgba(31, 183, 255, 0.09);
-}
-
-.backButton {
-  height: 52px;
-  margin-top: 2px;
-  background: transparent;
-  border: 1px solid rgba(113, 215, 255, 0.15);
-  color: rgba(226, 239, 255, 0.72);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.adminLink {
-  display: none;
-}
-
-.divider {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+.roleChoice {
+  width: 100%;
+  min-height: 70px;
+  border-radius: 18px;
+  border: 1px solid rgba(113, 215, 255, 0.2);
+  background: rgba(255, 255, 255, 0.055);
+  color: #fff;
+  display: flex;
   align-items: center;
   gap: 14px;
-  color: rgba(226, 239, 255, 0.34);
-  font-size: 13px;
-  margin: 4px 0;
+  padding: 0 18px;
+  font-size: 16px;
+  font-weight: 850;
+  cursor: pointer;
+  text-align: left;
 }
 
-.divider::before,
-.divider::after {
-  content: "";
-  height: 1px;
-  background: rgba(113, 215, 255, 0.14);
+.roleChoice svg {
+  color: var(--blue-soft);
 }
 
 .message {
-  min-height: 24px;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
 .alert {
-  border-radius: 15px;
-  padding: 12px 14px;
-  font-size: 14px;
+  border-radius: 14px;
+  padding: 11px 13px;
+  font-size: 13.5px;
   line-height: 1.35;
-  animation: fadeIn 0.22s ease both;
 }
 
 .error {
   color: #ffd9e0;
   background: rgba(225, 29, 72, 0.16);
   border: 1px solid rgba(255, 113, 141, 0.24);
-  box-shadow: 0 0 22px rgba(225, 29, 72, 0.08);
 }
 
 .success {
@@ -639,66 +393,53 @@
   border: 1px solid rgba(107, 216, 255, 0.24);
 }
 
-.otpInput {
-  text-align: center;
-  letter-spacing: 8px;
-  font-weight: 800;
-  padding-left: 18px;
+.splashPage {
+  padding: 18px;
 }
 
-.features {
-  display: none;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(113, 215, 255, 0.12);
-}
-
-.feature {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 9px;
-}
-
-.featureIcon {
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
-  border: 1px solid rgba(113, 215, 255, 0.2);
+.splashCard {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
-  color: var(--blue-soft);
-  background: rgba(255, 255, 255, 0.04);
+  gap: 12px;
+  color: #fff;
 }
 
-.featureTitle {
-  display: block;
-  color: rgba(255, 255, 255, 0.92);
+.splashLogo {
+  width: 106px;
+  height: 106px;
+  border-radius: 28px;
+  padding: 10px;
+  background: rgba(3, 9, 17, 0.86);
+  border: 1px solid rgba(107, 216, 255, 0.32);
+  box-shadow: 0 0 0 10px rgba(31, 183, 255, 0.045), 0 0 54px rgba(31, 183, 255, 0.42);
+  animation: logoPulse 0.95s ease both;
+}
+
+.splashLogo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.splashCard p {
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 30px;
+  letter-spacing: 6px;
+  font-weight: 750;
+}
+
+.splashCard span {
+  color: var(--muted);
   font-size: 13px;
-  font-weight: 800;
-}
-
-.featureSubtitle {
-  display: block;
-  margin-top: 3px;
-  color: rgba(226, 239, 255, 0.5);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.footer {
-  grid-column: 1 / -1;
-  color: rgba(226, 239, 255, 0.38);
-  font-size: 13px;
-  text-align: center;
-  margin-top: -10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .forgotShell {
-  width: min(520px, 100%);
+  width: min(500px, 100%);
   position: relative;
   z-index: 1;
 }
@@ -717,7 +458,7 @@
 
 .forgotTop .backButton {
   width: auto;
-  min-width: 116px;
+  min-width: 108px;
   padding: 0 16px;
 }
 
@@ -725,7 +466,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: white;
+  color: #fff;
 }
 
 .forgotLogo img {
@@ -751,8 +492,8 @@
 
 .statusBox {
   border: 1px solid rgba(107, 216, 255, 0.2);
-  border-radius: 20px;
-  padding: 18px;
+  border-radius: 18px;
+  padding: 16px;
   background: rgba(31, 183, 255, 0.09);
 }
 
@@ -770,7 +511,7 @@
 @keyframes cardIn {
   from {
     opacity: 0;
-    transform: scale(0.982) translateY(16px);
+    transform: scale(0.985) translateY(12px);
   }
   to {
     opacity: 1;
@@ -789,44 +530,36 @@
   }
 }
 
-@keyframes fadeIn {
+@keyframes logoPulse {
   from {
     opacity: 0;
+    transform: scale(0.92);
   }
   to {
     opacity: 1;
+    transform: scale(1);
   }
 }
 
 @media (max-width: 980px) {
   .page {
-    align-items: flex-start;
-    padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+    align-items: start;
+    place-items: start center;
   }
 
   .shell {
+    width: min(470px, 100%);
     grid-template-columns: 1fr;
-    width: min(540px, 100%);
   }
 
   .storyPanel {
     display: none;
   }
-
-  .card {
-    min-height: auto;
-    border-radius: 30px;
-    padding: 30px 24px 24px;
-  }
-
-  .footer {
-    margin-top: 0;
-  }
 }
 
 @media (max-width: 520px) {
   .page {
-    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
     background-position: center top;
   }
 
@@ -836,90 +569,58 @@
   }
 
   .card {
-    border-radius: 26px;
-    padding: 24px 18px 20px;
+    border-radius: 24px;
+    padding: 18px 15px 16px;
+  }
+
+  .brand {
+    margin-bottom: 16px;
   }
 
   .logoBadge {
-    width: 84px;
-    height: 84px;
-    border-radius: 23px;
-    margin-bottom: 12px;
+    width: 62px;
+    height: 62px;
+    border-radius: 18px;
+    margin-bottom: 9px;
   }
 
   .logoText {
-    font-size: 30px;
-    letter-spacing: 5px;
-  }
-
-  .ornamentLine {
-    width: 150px;
-    margin: 12px auto 10px;
+    font-size: 26px;
+    letter-spacing: 4px;
   }
 
   .tagline {
-    font-size: 10px;
-    letter-spacing: 1.6px;
-    line-height: 1.45;
-  }
-
-  .tabs {
-    height: 52px;
-    margin: 22px 0 16px;
-  }
-
-  .tab {
-    font-size: 14px;
-  }
-
-  .roleSwitch,
-  .gridFields {
-    grid-template-columns: 1fr;
-  }
-
-  .roleOption {
-    min-height: 50px;
-  }
-
-  .accountHint {
-    display: none;
+    font-size: 9px;
+    letter-spacing: 1.4px;
   }
 
   .formHeader {
-    margin-bottom: 14px;
-    text-align: center;
+    margin-bottom: 12px;
   }
 
   .formHeader h1,
   .formHeader h2 {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .formHeader p {
     font-size: 13px;
   }
 
+  .input,
+  .primaryButton,
+  .googleButton,
+  .backButton {
+    min-height: 50px;
+    height: 50px;
+  }
+
   .form {
-    gap: 11px;
+    gap: 9px;
   }
 
-  .input {
-    height: 55px;
-    font-size: 15px;
-  }
-
-  .primaryButton {
-    height: 58px;
-    font-size: 16px;
-  }
-
-  .secondaryButton {
-    min-height: 52px;
-    font-size: 14px;
-  }
-
-  .features {
-    display: none;
+  .switchText {
+    margin-top: 12px;
   }
 
   .forgotTop {
@@ -930,21 +631,30 @@
 
 @media (max-width: 360px) {
   .card {
-    padding: 20px 14px 18px;
+    padding: 15px 12px 14px;
     border-radius: 22px;
   }
 
+  .logoBadge {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+  }
+
   .logoText {
-    font-size: 27px;
-    letter-spacing: 4px;
+    font-size: 24px;
   }
 
   .formHeader h1,
   .formHeader h2 {
-    font-size: 22px;
+    font-size: 20px;
   }
 
-  .roleOption {
-    font-size: 12px;
+  .input,
+  .primaryButton,
+  .googleButton,
+  .backButton {
+    min-height: 48px;
+    height: 48px;
   }
 }

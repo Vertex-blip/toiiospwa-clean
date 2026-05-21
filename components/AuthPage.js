@@ -1,45 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Briefcase,
-  Building2,
-  Calendar,
-  Eye,
-  EyeOff,
-  Heart,
-  Lock,
-  Mail,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  User,
-  Users,
-} from "lucide-react";
+import { Briefcase, Eye, EyeOff, Lock, Mail, ShieldCheck, User, Users } from "lucide-react";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   sendEmailVerification,
-  sendPasswordResetEmail,
   signInWithPopup,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { CATEGORIES, EVENT_TYPES, KZ_CITIES } from "@/lib/appData";
 import { useAppStore } from "@/lib/appStore";
 import { readUserProfile, saveUserProfile, saveVendorProfile } from "@/lib/firebaseData";
 import { auth, firebaseReady } from "@/lib/firebase";
 import { isAdmin } from "@/lib/roles";
-import { isValidEmail, isValidKazakhstanPhone, normalizeEmail, normalizePhone, sanitizeText } from "@/lib/sanitize";
-import { makeSessionUser, ROLE_ROUTES, setSession } from "@/lib/session";
+import { isValidEmail, normalizeEmail, normalizePhone, sanitizeText } from "@/lib/sanitize";
+import { ROLE_ROUTES, setSession } from "@/lib/session";
 import styles from "./AuthPage.module.css";
 
-function PasswordField({ value, onChange, placeholder, ariaLabel, visible, onToggle, autoComplete = "current-password" }) {
+const DEFAULT_CITY = "Алматы";
+
+function PasswordField({ value, onChange, placeholder, ariaLabel, visible, onToggle, autoComplete }) {
   return (
     <div className={styles.fieldWrap}>
-      <Lock className={styles.fieldIcon} size={20} aria-hidden="true" />
+      <Lock className={styles.fieldIcon} size={19} aria-hidden="true" />
       <input
         className={`${styles.input} ${styles.inputWithToggle}`}
         type={visible ? "text" : "password"}
@@ -50,9 +36,20 @@ function PasswordField({ value, onChange, placeholder, ariaLabel, visible, onTog
         autoComplete={autoComplete}
       />
       <button className={styles.iconButton} type="button" onClick={onToggle} aria-label={visible ? "Скрыть пароль" : "Показать пароль"}>
-        {visible ? <EyeOff size={20} /> : <Eye size={20} />}
+        {visible ? <EyeOff size={19} /> : <Eye size={19} />}
       </button>
     </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg className={styles.googleIcon} viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M21.6 12.23c0-.78-.07-1.53-.2-2.23H12v4.22h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.52z" />
+      <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.44l-3.24-2.51c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.75-5.59-4.12H3.07v2.59A10 10 0 0 0 12 22z" />
+      <path fill="#FBBC05" d="M6.41 13.89a6 6 0 0 1 0-3.78V7.52H3.07a10 10 0 0 0 0 8.96l3.34-2.59z" />
+      <path fill="#EA4335" d="M12 5.99c1.47 0 2.78.5 3.82 1.5l2.87-2.87A9.63 9.63 0 0 0 12 2a10 10 0 0 0-8.93 5.52l3.34 2.59C7.2 7.74 9.4 5.99 12 5.99z" />
+    </svg>
   );
 }
 
@@ -61,7 +58,7 @@ function firebaseErrorMessage(error) {
   if (code === "auth/popup-closed-by-user") return "Google вход отменен";
   if (code === "auth/popup-blocked") return "Браузер заблокировал Google вход";
   if (code === "auth/account-exists-with-different-credential") return "Этот email уже использует другой способ входа";
-  if (code === "auth/operation-not-allowed") return "Email/password вход не включен в Firebase Authentication";
+  if (code === "auth/operation-not-allowed") return "Этот способ входа не включен в Firebase Authentication";
   if (code === "auth/configuration-not-found") return "Firebase Authentication не настроен для этого проекта";
   if (code === "auth/invalid-email") return "Введите корректный email";
   if (code === "auth/weak-password") return "Пароль слишком слабый. Минимум 6 символов";
@@ -70,31 +67,23 @@ function firebaseErrorMessage(error) {
   if (code === "auth/email-already-in-use") return "Этот email уже зарегистрирован";
   if (code === "auth/too-many-requests") return "Слишком много попыток. Попробуйте позже";
   if (code === "auth/network-request-failed") return "Проверьте интернет соединение";
-  if (code === "PERMISSION_DENIED" || /permission/i.test(error?.message || "")) return "Аккаунт создан, но база данных отклонила запись профиля. Обновите Firebase Database Rules";
+  if (code === "PERMISSION_DENIED" || /permission/i.test(error?.message || "")) return "Firebase Database Rules отклонили запись профиля";
   return "Ошибка авторизации";
 }
 
 export default function AuthPage({ initialTab = "login" }) {
   const router = useRouter();
-  const { setStore, upsertCurrentUser } = useAppStore();
+  const { upsertCurrentUser } = useAppStore();
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [accountType, setAccountType] = useState("client");
-  const [phoneLoginMode, setPhoneLoginMode] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [pendingUser, setPendingUser] = useState(null);
 
   const [loginId, setLoginId] = useState("");
-  const [password, setPassword] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [city, setCity] = useState("Алматы");
-  const [eventType, setEventType] = useState("Үйлену той");
-  const [businessName, setBusinessName] = useState("");
-  const [vendorCategory, setVendorCategory] = useState("Залы");
-  const [instagram, setInstagram] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [registerPhone, setRegisterPhone] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [phoneOnly, setPhoneOnly] = useState("");
 
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
@@ -108,27 +97,14 @@ export default function AuthPage({ initialTab = "login" }) {
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const accountCopy =
-    accountType === "vendor"
-      ? {
-          title: "Кабинет поставщика услуг",
-          subtitle: "Получайте заявки, управляйте календарем и профилем услуги",
-          icon: Briefcase,
-        }
-      : {
-          title: "Я организую той",
-          subtitle: "План, гости, бюджет, бронь и приглашения в одном приложении",
-          icon: Users,
-        };
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowSplash(false), 950);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   function resetMessages() {
     setError("");
     setSuccess("");
-  }
-
-  function showError(message) {
-    setSuccess("");
-    setError(message);
   }
 
   function ensureFirebaseAuth() {
@@ -140,7 +116,7 @@ export default function AuthPage({ initialTab = "login" }) {
 
   function switchTab(tab) {
     setActiveTab(tab);
-    setPhoneLoginMode(false);
+    setPendingUser(null);
     setAdminUnlocked(false);
     resetMessages();
   }
@@ -151,12 +127,27 @@ export default function AuthPage({ initialTab = "login" }) {
       const nextCount = count + 1;
       if (nextCount >= 4) {
         setAdminUnlocked(true);
-        setPhoneLoginMode(false);
+        setPendingUser(null);
         resetMessages();
         return 0;
       }
       return nextCount;
     });
+  }
+
+  function buildSessionUser(firebaseUser, profile, role) {
+    return {
+      uid: firebaseUser.uid,
+      role,
+      name: profile?.name || firebaseUser.displayName || "TOI.KZ user",
+      phone: profile?.phoneNumber || profile?.phone || firebaseUser.phoneNumber || "",
+      email: firebaseUser.email || profile?.email || "",
+      emailVerified: firebaseUser.emailVerified,
+      city: profile?.city || DEFAULT_CITY,
+      businessName: profile?.businessName || "",
+      status: profile?.status || (role === "vendor" ? "pendingApproval" : "active"),
+      createdAt: profile?.createdAt || Date.now(),
+    };
   }
 
   function finishAuth(user, route) {
@@ -166,59 +157,72 @@ export default function AuthPage({ initialTab = "login" }) {
     router.push(route || ROLE_ROUTES[user.role] || "/menu/home");
   }
 
+  async function completeOrAskRole(firebaseUser, profile) {
+    const role = profile?.role || "";
+    if (role === "admin") {
+      await signOut(auth).catch(() => {});
+      setSubmitting(false);
+      setError("Admin вход скрыт. Нажмите логотип TOI.KZ 4 раза.");
+      return;
+    }
+
+    if (role === "client" || role === "vendor") {
+      finishAuth(buildSessionUser(firebaseUser, profile, role), ROLE_ROUTES[role]);
+      return;
+    }
+
+    setPendingUser({
+      uid: firebaseUser.uid,
+      name: profile?.name || firebaseUser.displayName || "TOI.KZ user",
+      email: firebaseUser.email || profile?.email || "",
+      phone: firebaseUser.phoneNumber || profile?.phone || "",
+      emailVerified: firebaseUser.emailVerified,
+      createdAt: profile?.createdAt || Date.now(),
+    });
+    setActiveTab("role");
+    setSubmitting(false);
+  }
+
+  async function createPendingProfile(firebaseUser, displayName) {
+    const profile = {
+      uid: firebaseUser.uid,
+      name: sanitizeText(displayName || firebaseUser.displayName || "TOI.KZ user", 80),
+      email: normalizeEmail(firebaseUser.email || ""),
+      phone: normalizePhone(firebaseUser.phoneNumber || ""),
+      phoneNumber: normalizePhone(firebaseUser.phoneNumber || ""),
+      phoneNumberNormalized: normalizePhone(firebaseUser.phoneNumber || ""),
+      role: "",
+      city: DEFAULT_CITY,
+      status: "active",
+      createdAt: Date.now(),
+    };
+    return saveUserProfile(firebaseUser.uid, profile).catch(() => profile);
+  }
+
   async function handleLogin(e) {
     e.preventDefault();
     setSubmitting(true);
     resetMessages();
     if (!ensureFirebaseAuth()) return;
 
-    const safeLoginId = sanitizeText(loginId, 254);
-    if (!safeLoginId || !password) {
+    const safeEmail = normalizeEmail(loginId);
+    if (!isValidEmail(safeEmail) || !loginPassword) {
       setSubmitting(false);
-      setError("Введите email или телефон и пароль");
+      setError("Введите email и пароль");
       return;
     }
 
     try {
-      let loginEmail = "";
-
-      if (!safeLoginId.includes("@")) {
-        setSubmitting(false);
-        setError("Вход по телефону Coming soon. Используйте email и пароль.");
-        return;
-      }
-
-      loginEmail = normalizeEmail(safeLoginId);
-      if (!isValidEmail(loginEmail)) {
-        setSubmitting(false);
-        setError("Введите корректный email");
-        return;
-      }
-
-      const credential = await signInWithEmailAndPassword(auth, loginEmail, password);
-      const profile = await readUserProfile(credential.user.uid);
-      const role = profile?.role || "client";
-      if (role === "admin") {
+      const credential = await signInWithEmailAndPassword(auth, safeEmail, loginPassword);
+      if (await isAdmin(credential.user.uid)) {
         await signOut(auth).catch(() => {});
         setSubmitting(false);
         setError("Admin вход скрыт. Нажмите логотип TOI.KZ 4 раза.");
         return;
       }
-      const profilePhone = profile?.phoneNumber || profile?.phone || credential.user.phoneNumber || "";
-      const user = {
-        uid: credential.user.uid,
-        role,
-        name: profile?.name || credential.user.displayName || "toi.kz user",
-        phone: profilePhone,
-        email: credential.user.email || loginEmail,
-        emailVerified: credential.user.emailVerified,
-        city: profile?.city || city,
-        businessName: profile?.businessName || "",
-        status: profile?.status || "active",
-        createdAt: profile?.createdAt || new Date().toISOString(),
-      };
-
-      finishAuth(user, role === "vendor" ? "/vendor" : role === "admin" ? "/admin" : "/menu/home");
+      let profile = await readUserProfile(credential.user.uid).catch(() => null);
+      if (!profile?.uid) profile = await createPendingProfile(credential.user, credential.user.displayName);
+      await completeOrAskRole(credential.user, profile);
     } catch (loginError) {
       setSubmitting(false);
       setError(firebaseErrorMessage(loginError));
@@ -233,42 +237,19 @@ export default function AuthPage({ initialTab = "login" }) {
 
     const safeName = sanitizeText(name, 80);
     const safeEmail = normalizeEmail(email);
-    const safePhone = normalizePhone(registerPhone);
-    const safeBusinessName = sanitizeText(businessName, 120);
-
-    if (!safeName || !safeEmail || !safePhone || !registerPassword || !confirmPassword) {
+    if (!safeName || !isValidEmail(safeEmail) || !registerPassword || !confirmPassword) {
       setSubmitting(false);
-      setError("Заполните все поля");
+      setError("Заполните имя, email и пароль");
       return;
     }
-
-    if (!isValidEmail(safeEmail)) {
-      setSubmitting(false);
-      setError("Введите корректный email");
-      return;
-    }
-
-    if (!isValidKazakhstanPhone(safePhone)) {
-      setSubmitting(false);
-      setError("Введите корректный номер телефона +7XXXXXXXXXX");
-      return;
-    }
-
     if (registerPassword.length < 6) {
       setSubmitting(false);
       setError("Пароль должен быть минимум 6 символов");
       return;
     }
-
     if (registerPassword !== confirmPassword) {
       setSubmitting(false);
       setError("Пароли не совпадают");
-      return;
-    }
-
-    if (accountType === "vendor" && !safeBusinessName) {
-      setSubmitting(false);
-      setError("Укажите название бизнеса");
       return;
     }
 
@@ -276,79 +257,9 @@ export default function AuthPage({ initialTab = "login" }) {
       const credential = await createUserWithEmailAndPassword(auth, safeEmail, registerPassword);
       await updateProfile(credential.user, { displayName: safeName });
       await sendEmailVerification(credential.user).catch(() => {});
-
-      const profile = {
-        uid: credential.user.uid,
-        name: safeName,
-        email: safeEmail,
-        phone: safePhone,
-        phoneNumber: safePhone,
-        phoneNumberNormalized: safePhone,
-        role: accountType,
-        city,
-        eventType: accountType === "client" ? eventType : "",
-        businessName: accountType === "vendor" ? safeBusinessName : "",
-        vendorCategory: accountType === "vendor" ? vendorCategory : "",
-        instagram: accountType === "vendor" ? sanitizeText(instagram, 80) : "",
-        whatsapp: accountType === "vendor" ? sanitizeText(whatsapp, 32) : "",
-        status: accountType === "vendor" ? "pendingApproval" : "active",
-        createdAt: Date.now(),
-      };
-
-      const profileWrite = await saveUserProfile(credential.user.uid, profile).then(() => true).catch(() => false);
-
-      const user = makeSessionUser({
-        role: accountType,
-        name: safeName,
-        phone: safePhone,
-        city,
-        businessName: safeBusinessName,
-        status: profile.status,
-      });
-      user.uid = credential.user.uid;
-      user.email = safeEmail;
-      user.emailVerified = credential.user.emailVerified;
-      user.createdAt = new Date(profile.createdAt).toISOString();
-
-      if (accountType === "vendor") {
-        const vendorProfile = {
-          id: credential.user.uid,
-          ownerId: credential.user.uid,
-          businessName: safeBusinessName,
-          title: safeBusinessName,
-          category: vendorCategory,
-          city,
-          description: "Новый vendor profile ожидает проверки администратора.",
-          priceFrom: 0,
-          capacity: null,
-          rating: 0,
-          reviewsCount: 0,
-          verified: false,
-          featured: false,
-          status: "pending",
-          phone: safePhone,
-          whatsapp: sanitizeText(whatsapp, 32),
-          instagram: sanitizeText(instagram, 80),
-          image: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1200",
-          features: [],
-          availableDates: [],
-          createdAt: new Date().toISOString(),
-        };
-        await saveVendorProfile(credential.user.uid, vendorProfile).catch(() => {});
-        setStore((current) => ({
-          ...current,
-          vendors: [
-            vendorProfile,
-            ...current.vendors.filter((vendor) => vendor.ownerId !== credential.user.uid),
-          ],
-        }));
-      }
-
-      if (!profileWrite) {
-        setSuccess("Аккаунт создан. Профиль сохранится после обновления Firebase Database Rules.");
-      }
-
-      finishAuth(user, accountType === "vendor" ? "/vendor" : "/menu/home");
+      const profile = await createPendingProfile(credential.user, safeName);
+      setSuccess("Аккаунт создан. Выберите тип профиля.");
+      await completeOrAskRole(credential.user, profile);
     } catch (registerError) {
       setSubmitting(false);
       setError(firebaseErrorMessage(registerError));
@@ -364,90 +275,73 @@ export default function AuthPage({ initialTab = "login" }) {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
       const credential = await signInWithPopup(auth, provider);
-      const uid = credential.user.uid;
 
-      if (await isAdmin(uid)) {
+      if (await isAdmin(credential.user.uid)) {
         await signOut(auth).catch(() => {});
         setSubmitting(false);
         setError("Admin вход скрыт. Нажмите логотип TOI.KZ 4 раза.");
         return;
       }
 
-      let profile = await readUserProfile(uid).catch(() => null);
-      if (!profile?.email && !profile?.name) {
-        const displayName = sanitizeText(credential.user.displayName || "TOI.KZ user", 80);
-        const role = accountType === "vendor" ? "vendor" : "client";
-        const payload = {
-          uid,
-          name: displayName,
-          email: normalizeEmail(credential.user.email || ""),
-          phone: normalizePhone(credential.user.phoneNumber || ""),
-          phoneNumber: normalizePhone(credential.user.phoneNumber || ""),
-          phoneNumberNormalized: normalizePhone(credential.user.phoneNumber || ""),
-          role,
-          city,
-          eventType: role === "client" ? eventType : "",
-          businessName: role === "vendor" ? displayName : "",
-          vendorCategory: role === "vendor" ? vendorCategory : "",
-          status: role === "vendor" ? "pendingApproval" : "active",
-          createdAt: Date.now(),
-        };
-
-        profile = await saveUserProfile(uid, payload);
-
-        if (role === "vendor") {
-          const vendorProfile = {
-            id: uid,
-            ownerId: uid,
-            businessName: displayName,
-            title: displayName,
-            category: vendorCategory,
-            city,
-            description: "New vendor profile is waiting for administrator approval.",
-            priceFrom: 0,
-            capacity: null,
-            rating: 0,
-            reviewsCount: 0,
-            verified: false,
-            featured: false,
-            status: "pending",
-            phone: normalizePhone(credential.user.phoneNumber || ""),
-            whatsapp: "",
-            instagram: "",
-            image: "/images/toi-login-bg.png",
-            features: [],
-            availableDates: [],
-            createdAt: new Date().toISOString(),
-          };
-          await saveVendorProfile(uid, vendorProfile).catch(() => {});
-          setStore((current) => ({
-            ...current,
-            vendors: [
-              vendorProfile,
-              ...current.vendors.filter((vendor) => vendor.ownerId !== uid),
-            ],
-          }));
-        }
-      }
-
-      const role = profile?.role === "vendor" ? "vendor" : "client";
-      const user = {
-        uid,
-        role,
-        name: profile?.name || credential.user.displayName || "TOI.KZ user",
-        phone: profile?.phoneNumber || profile?.phone || credential.user.phoneNumber || "",
-        email: credential.user.email || profile?.email || "",
-        emailVerified: credential.user.emailVerified,
-        city: profile?.city || city,
-        businessName: profile?.businessName || "",
-        status: profile?.status || (role === "vendor" ? "pendingApproval" : "active"),
-        createdAt: profile?.createdAt || Date.now(),
-      };
-
-      finishAuth(user, role === "vendor" ? "/vendor" : "/menu/home");
+      let profile = await readUserProfile(credential.user.uid).catch(() => null);
+      if (!profile?.uid) profile = await createPendingProfile(credential.user, credential.user.displayName);
+      await completeOrAskRole(credential.user, profile);
     } catch (googleError) {
       setSubmitting(false);
       setError(firebaseErrorMessage(googleError));
+    }
+  }
+
+  async function handleRoleSelect(role) {
+    setSubmitting(true);
+    resetMessages();
+    if (!ensureFirebaseAuth()) return;
+
+    const currentUser = auth.currentUser;
+    if (!currentUser || !pendingUser?.uid || currentUser.uid !== pendingUser.uid) {
+      setSubmitting(false);
+      setError("Сессия устарела. Войдите заново.");
+      return;
+    }
+
+    const profile = {
+      uid: currentUser.uid,
+      name: pendingUser.name,
+      email: pendingUser.email,
+      phone: pendingUser.phone || "",
+      phoneNumber: pendingUser.phone || "",
+      phoneNumberNormalized: pendingUser.phone || "",
+      role,
+      city: DEFAULT_CITY,
+      businessName: role === "vendor" ? pendingUser.name : "",
+      status: role === "vendor" ? "pendingApproval" : "active",
+      createdAt: pendingUser.createdAt || Date.now(),
+    };
+
+    try {
+      const savedProfile = await saveUserProfile(currentUser.uid, profile);
+      if (role === "vendor") {
+        await saveVendorProfile(currentUser.uid, {
+          id: currentUser.uid,
+          ownerId: currentUser.uid,
+          businessName: pendingUser.name,
+          title: pendingUser.name,
+          category: "Услуги",
+          city: DEFAULT_CITY,
+          description: "Vendor profile is waiting for administrator approval.",
+          priceFrom: 0,
+          status: "pending",
+          phone: pendingUser.phone || "",
+          image: "/images/toi-login-bg.png",
+          features: [],
+          availableDates: [],
+          createdAt: new Date().toISOString(),
+        }).catch(() => {});
+      }
+      finishAuth(buildSessionUser(currentUser, savedProfile, role), ROLE_ROUTES[role]);
+    } catch (roleError) {
+      setSubmitting(false);
+      setError(firebaseErrorMessage(roleError));
     }
   }
 
@@ -475,88 +369,34 @@ export default function AuthPage({ initialTab = "login" }) {
       }
 
       const profile = await readUserProfile(credential.user.uid).catch(() => null);
-      const user = {
-        uid: credential.user.uid,
-        role: "admin",
-        name: profile?.name || credential.user.displayName || "TOI.KZ Admin",
-        phone: profile?.phoneNumber || profile?.phone || credential.user.phoneNumber || "",
-        email: credential.user.email || safeEmail,
-        emailVerified: credential.user.emailVerified,
-        city: profile?.city || city,
-        businessName: profile?.businessName || "",
-        status: "active",
-        createdAt: profile?.createdAt || Date.now(),
-      };
-
-      finishAuth(user, "/admin");
+      finishAuth(buildSessionUser(credential.user, profile, "admin"), "/admin");
     } catch (adminError) {
       setSubmitting(false);
       setError(firebaseErrorMessage(adminError));
     }
   }
 
-  function handlePhoneLoginStart() {
-    setPhoneLoginMode(true);
-    setError("");
-    setSuccess("");
-  }
-
-  async function handlePhoneSubmit(e) {
-    e.preventDefault();
-    setSubmitting(true);
-    resetMessages();
-
-    const safePhone = normalizePhone(phoneOnly);
-    if (!isValidKazakhstanPhone(safePhone)) {
-      setSubmitting(false);
-      showError("Введите корректный номер телефона");
-      return;
-    }
-
-    if (!password) {
-      setSubmitting(false);
-      showError("Введите пароль");
-      return;
-    }
-
-    setSubmitting(false);
-    setSuccess("Вход по телефону Coming soon. Сейчас используйте email и пароль.");
-  }
-
-  async function handleForgotPassword() {
-    const safeLoginId = sanitizeText(loginId, 254);
-    if (!safeLoginId || !safeLoginId.includes("@")) {
-      setError("");
-      setSuccess("Введите email, чтобы восстановить пароль");
-      return;
-    }
-
-    const safeEmail = normalizeEmail(safeLoginId);
-    if (!isValidEmail(safeEmail)) {
-      setError("");
-      setSuccess("Введите email, чтобы восстановить пароль");
-      return;
-    }
-
-    if (!ensureFirebaseAuth()) return;
-
-    try {
-      await sendPasswordResetEmail(auth, safeEmail);
-      setError("");
-      setSuccess("Письмо для восстановления отправлено");
-    } catch {
-      setError("");
-      setSuccess("Если email зарегистрирован, письмо для восстановления будет отправлено");
-    }
-  }
-
-  const AccountIcon = accountCopy.icon;
-  const message = (
+  const message = error || success ? (
     <div className={styles.message} role="status" aria-live="polite">
       {error ? <div className={`${styles.alert} ${styles.error}`}>{error}</div> : null}
       {success ? <div className={`${styles.alert} ${styles.success}`}>{success}</div> : null}
     </div>
-  );
+  ) : null;
+
+  if (showSplash) {
+    return (
+      <main className={`${styles.page} ${styles.splashPage}`}>
+        <div className={styles.cinematicLayer} aria-hidden="true" />
+        <section className={styles.splashCard} aria-label="TOI.KZ loading">
+          <div className={styles.splashLogo}>
+            <img src="/icons/toi-blue-logo.png" alt="TOI.KZ" />
+          </div>
+          <p>TOI.KZ</p>
+          <span>Жүктелуде...</span>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className={styles.page}>
@@ -569,56 +409,17 @@ export default function AuthPage({ initialTab = "login" }) {
           <p className={styles.eyebrow}>Premium wedding PWA</p>
           <h2>Тойды басқарудың жаңа деңгейі</h2>
           <p>Қонақтар, бюджет, бронь және vendor сервистері бір қауіпсіз TOI.KZ кеңістігінде.</p>
-          <div className={styles.previewStack} aria-hidden="true">
-            <span>Login</span>
-            <span>Register</span>
-            <span>Password reset</span>
-          </div>
         </aside>
-        <section className={styles.card} aria-label="Авторизация toi.kz">
+
+        <section className={styles.card} aria-label="Авторизация TOI.KZ">
           <div className={styles.content}>
             <header className={styles.brand}>
               <button className={styles.logoBadge} type="button" onClick={handleLogoClick} aria-label="TOI.KZ">
                 <img className={styles.logoMark} src="/icons/toi-blue-logo.png" alt="" />
               </button>
               <h1 className={styles.logoText}>TOI.KZ</h1>
-              <div className={styles.ornamentLine} aria-hidden="true">
-                <span className={styles.diamond} />
-              </div>
-              <p className={styles.tagline}>Сервис для вашего идеального тоя</p>
+              <p className={styles.tagline}>Premium wedding platform</p>
             </header>
-
-            {!adminUnlocked ? (
-              <>
-            <div className={styles.tabs} role="tablist" aria-label="Тип формы">
-              <button className={`${styles.tab} ${activeTab === "login" ? styles.tabActive : ""}`} type="button" role="tab" aria-selected={activeTab === "login"} onClick={() => switchTab("login")}>
-                Вход
-              </button>
-              <button className={`${styles.tab} ${activeTab === "register" ? styles.tabActive : ""}`} type="button" role="tab" aria-selected={activeTab === "register"} onClick={() => switchTab("register")}>
-                Регистрация
-              </button>
-            </div>
-
-            <div className={styles.roleSwitch} aria-label="Тип аккаунта">
-              <button className={`${styles.roleOption} ${accountType === "client" ? styles.roleActive : ""}`} type="button" onClick={() => setAccountType("client")}>
-                <Users size={18} aria-hidden="true" />
-                <span>Я организую той</span>
-              </button>
-              <button className={`${styles.roleOption} ${accountType === "vendor" ? styles.roleActive : ""}`} type="button" onClick={() => setAccountType("vendor")}>
-                <Briefcase size={18} aria-hidden="true" />
-                <span>Я предоставляю услугу</span>
-              </button>
-            </div>
-
-            <div className={styles.accountHint}>
-              <AccountIcon size={18} aria-hidden="true" />
-              <span>
-                <strong>{accountCopy.title}</strong>
-                {accountCopy.subtitle}
-              </span>
-            </div>
-              </>
-            ) : null}
 
             {adminUnlocked ? (
               <div className={styles.formPanel} key="admin-login">
@@ -629,155 +430,105 @@ export default function AuthPage({ initialTab = "login" }) {
                 {message}
                 <form className={styles.form} onSubmit={handleAdminLogin}>
                   <div className={styles.fieldWrap}>
-                    <ShieldCheck className={styles.fieldIcon} size={20} aria-hidden="true" />
+                    <ShieldCheck className={styles.fieldIcon} size={19} aria-hidden="true" />
                     <input className={styles.input} type="email" value={adminEmail} onChange={(e) => setAdminEmail(sanitizeText(e.target.value, 254))} placeholder="Admin email" aria-label="Admin email" autoComplete="username" />
                   </div>
-                  <PasswordField value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="Admin password" ariaLabel="Admin password" visible={showAdminPassword} onToggle={() => setShowAdminPassword((value) => !value)} />
+                  <PasswordField value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="Admin password" ariaLabel="Admin password" visible={showAdminPassword} onToggle={() => setShowAdminPassword((value) => !value)} autoComplete="current-password" />
                   <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                    {submitting ? "Проверяем доступ..." : "Войти в admin panel"}
+                    {submitting ? "Проверяем..." : "Войти в admin panel"}
                   </button>
                   <button className={styles.backButton} type="button" onClick={() => { setAdminUnlocked(false); resetMessages(); }}>
-                    Вернуться к входу
-                  </button>
-                </form>
-              </div>
-            ) : null}
-
-            {!adminUnlocked && activeTab === "login" && !phoneLoginMode ? (
-              <div className={styles.formPanel} key="login">
-                <div className={styles.formHeader}>
-                  <h2>Войдите в свой аккаунт</h2>
-                  <p>Управляйте вашим тоем легко и удобно</p>
-                </div>
-                {message}
-                <form className={styles.form} onSubmit={handleLogin}>
-                  <div className={styles.fieldWrap}>
-                    <Mail className={styles.fieldIcon} size={20} aria-hidden="true" />
-                    <input className={styles.input} type="text" value={loginId} onChange={(e) => setLoginId(sanitizeText(e.target.value, 254))} placeholder="Email или телефон" aria-label="Email или телефон" autoComplete="username" />
-                  </div>
-                  <PasswordField value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" ariaLabel="Пароль" visible={showLoginPassword} onToggle={() => setShowLoginPassword((value) => !value)} />
-                  <div className={styles.rowEnd}>
-                    <button className={styles.linkButton} type="button" onClick={handleForgotPassword}>
-                      Забыли пароль?
-                    </button>
-                  </div>
-                  <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                    {submitting ? "Входим..." : "Войти"}
-                  </button>
-                  <div className={styles.divider}>или</div>
-                  <button className={styles.googleButton} type="button" onClick={handleGoogleLogin} disabled={submitting}>
-                    <span className={styles.googleMark} aria-hidden="true">G</span>
-                    Войти через Google
-                  </button>
-                  <button className={styles.secondaryButton} type="button" onClick={handlePhoneLoginStart}>
-                    <Phone size={20} aria-hidden="true" />
-                    Войти по номеру телефона - Coming soon
-                  </button>
-                </form>
-              </div>
-            ) : null}
-
-            {!adminUnlocked && activeTab === "login" && phoneLoginMode ? (
-              <div className={styles.formPanel} key="phone-login">
-                <div className={styles.formHeader}>
-                  <h2>Вход по номеру телефона - Coming soon</h2>
-                  <p>Безопасный вход по телефону будет подключен через Firebase Phone Auth/OTP. Сейчас используйте email и пароль.</p>
-                </div>
-                {message}
-                <form className={styles.form} onSubmit={handlePhoneSubmit}>
-                  <div className={styles.fieldWrap}>
-                    <Phone className={styles.fieldIcon} size={20} aria-hidden="true" />
-                    <input className={styles.input} type="tel" value={phoneOnly} onChange={(e) => setPhoneOnly(sanitizeText(e.target.value, 24))} placeholder="+7 (___) ___-__-__" aria-label="Телефон для входа" autoComplete="tel" />
-                  </div>
-                  <PasswordField value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" ariaLabel="Пароль" visible={showLoginPassword} onToggle={() => setShowLoginPassword((value) => !value)} />
-                  <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                    {submitting ? "Проверяем..." : "Phone login Coming soon"}
-                  </button>
-                  <button className={styles.backButton} type="button" onClick={() => { setPhoneLoginMode(false); resetMessages(); }}>
                     Вернуться
                   </button>
                 </form>
               </div>
             ) : null}
 
+            {!adminUnlocked && activeTab === "login" ? (
+              <div className={styles.formPanel} key="login">
+                <div className={styles.formHeader}>
+                  <h2>Қош келдіңіз</h2>
+                  <p>Войдите, чтобы продолжить организацию вашего тоя.</p>
+                </div>
+                {message}
+                <form className={styles.form} onSubmit={handleLogin}>
+                  <div className={styles.fieldWrap}>
+                    <Mail className={styles.fieldIcon} size={19} aria-hidden="true" />
+                    <input className={styles.input} type="email" value={loginId} onChange={(e) => setLoginId(sanitizeText(e.target.value, 254))} placeholder="Email" aria-label="Email" autoComplete="username" autoCapitalize="none" />
+                  </div>
+                  <PasswordField value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Пароль" ariaLabel="Пароль" visible={showLoginPassword} onToggle={() => setShowLoginPassword((value) => !value)} autoComplete="current-password" />
+                  <div className={styles.rowEnd}>
+                    <button className={styles.linkButton} type="button" onClick={() => router.push("/forgot-password")}>
+                      Забыли пароль?
+                    </button>
+                  </div>
+                  <button className={styles.primaryButton} type="submit" disabled={submitting}>
+                    {submitting ? "Входим..." : "Войти"}
+                  </button>
+                  <button className={styles.googleButton} type="button" onClick={handleGoogleLogin} disabled={submitting}>
+                    <GoogleIcon />
+                    Continue with Google
+                  </button>
+                </form>
+                <p className={styles.switchText}>
+                  Нет аккаунта? <button type="button" onClick={() => switchTab("register")}>Зарегистрироваться</button>
+                </p>
+              </div>
+            ) : null}
+
             {!adminUnlocked && activeTab === "register" ? (
               <div className={styles.formPanel} key="register">
                 <div className={styles.formHeader}>
-                  <h2>{accountType === "vendor" ? "Создайте vendor кабинет" : "Создайте аккаунт"}</h2>
-                  <p>{accountType === "vendor" ? "После регистрации профиль попадет на проверку администратору" : "Начните организовывать ваш той уже сегодня"}</p>
+                  <h2>Создать аккаунт</h2>
+                  <p>Минимум данных сейчас. Роль выберете на следующем шаге.</p>
                 </div>
                 {message}
                 <form className={styles.form} onSubmit={handleRegister}>
                   <div className={styles.fieldWrap}>
-                    <User className={styles.fieldIcon} size={20} aria-hidden="true" />
-                    <input className={styles.input} type="text" value={name} onChange={(e) => setName(sanitizeText(e.target.value, 80))} placeholder="Ваше имя" aria-label="Имя" autoComplete="name" />
+                    <User className={styles.fieldIcon} size={19} aria-hidden="true" />
+                    <input className={styles.input} type="text" value={name} onChange={(e) => setName(sanitizeText(e.target.value, 80))} placeholder="Имя" aria-label="Имя" autoComplete="name" />
                   </div>
                   <div className={styles.fieldWrap}>
-                    <Mail className={styles.fieldIcon} size={20} aria-hidden="true" />
-                    <input className={styles.input} type="email" value={email} onChange={(e) => setEmail(sanitizeText(e.target.value, 254))} placeholder="Email" aria-label="Email" autoComplete="email" />
+                    <Mail className={styles.fieldIcon} size={19} aria-hidden="true" />
+                    <input className={styles.input} type="email" value={email} onChange={(e) => setEmail(sanitizeText(e.target.value, 254))} placeholder="Email" aria-label="Email" autoComplete="email" autoCapitalize="none" />
                   </div>
-                  <div className={styles.fieldWrap}>
-                    <Phone className={styles.fieldIcon} size={20} aria-hidden="true" />
-                    <input className={styles.input} type="tel" value={registerPhone} onChange={(e) => setRegisterPhone(sanitizeText(e.target.value, 24))} placeholder="+7 (___) ___-__-__" aria-label="Телефон" autoComplete="tel" />
-                  </div>
-                  {accountType === "client" ? (
-                    <div className={styles.fieldWrap}>
-                      <MapPin className={styles.fieldIcon} size={19} aria-hidden="true" />
-                      <select className={styles.input} value={city} onChange={(e) => setCity(e.target.value)} aria-label="Город">
-                        {KZ_CITIES.map((item) => <option key={item} value={item}>{item}</option>)}
-                      </select>
-                    </div>
-                  ) : (
-                    <div className={styles.gridFields}>
-                      <div className={styles.fieldWrap}>
-                        <MapPin className={styles.fieldIcon} size={19} aria-hidden="true" />
-                        <select className={styles.input} value={city} onChange={(e) => setCity(e.target.value)} aria-label="Город">
-                          {KZ_CITIES.map((item) => <option key={item} value={item}>{item}</option>)}
-                        </select>
-                      </div>
-                      <select className={`${styles.input} ${styles.inputPlain}`} value={vendorCategory} onChange={(e) => setVendorCategory(e.target.value)} aria-label="Категория услуги">
-                        {CATEGORIES.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
-                      </select>
-                    </div>
-                  )}
-                  {accountType === "vendor" ? (
-                    <>
-                      <div className={styles.fieldWrap}>
-                        <Building2 className={styles.fieldIcon} size={20} aria-hidden="true" />
-                        <input className={styles.input} type="text" value={businessName} onChange={(e) => setBusinessName(sanitizeText(e.target.value, 120))} placeholder="Название бизнеса" aria-label="Название бизнеса" />
-                      </div>
-                      <div className={styles.gridFields}>
-                        <input className={`${styles.input} ${styles.inputPlain}`} value={instagram} onChange={(e) => setInstagram(sanitizeText(e.target.value, 80))} placeholder="Instagram optional" aria-label="Instagram" />
-                        <input className={`${styles.input} ${styles.inputPlain}`} value={whatsapp} onChange={(e) => setWhatsapp(sanitizeText(e.target.value, 32))} placeholder="WhatsApp optional" aria-label="WhatsApp" />
-                      </div>
-                    </>
-                  ) : null}
-                  <PasswordField value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="Придумайте пароль" ariaLabel="Придумайте пароль" visible={showRegisterPassword} onToggle={() => setShowRegisterPassword((value) => !value)} autoComplete="new-password" />
+                  <PasswordField value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="Пароль" ariaLabel="Пароль" visible={showRegisterPassword} onToggle={() => setShowRegisterPassword((value) => !value)} autoComplete="new-password" />
                   <PasswordField value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Повторите пароль" ariaLabel="Повторите пароль" visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((value) => !value)} autoComplete="new-password" />
                   <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                    {submitting ? "Создаем..." : accountType === "vendor" ? "Отправить на проверку" : "Зарегистрироваться"}
+                    {submitting ? "Создаем..." : "Зарегистрироваться"}
+                  </button>
+                  <button className={styles.googleButton} type="button" onClick={handleGoogleLogin} disabled={submitting}>
+                    <GoogleIcon />
+                    Sign up with Google
                   </button>
                 </form>
+                <p className={styles.switchText}>
+                  Уже есть аккаунт? <button type="button" onClick={() => switchTab("login")}>Войти</button>
+                </p>
               </div>
             ) : null}
 
-            <div className={styles.features} aria-label="Возможности toi.kz">
-              <div className={styles.feature}>
-                <span className={styles.featureIcon}><Calendar size={22} aria-hidden="true" /></span>
-                <span><span className={styles.featureTitle}>Планируйте</span><span className={styles.featureSubtitle}>все этапы тоя</span></span>
+            {!adminUnlocked && activeTab === "role" ? (
+              <div className={styles.formPanel} key="role">
+                <div className={styles.formHeader}>
+                  <h2>Профиль түрін таңдаңыз</h2>
+                  <p>Бұл таңдау Firebase профиліңізге сақталады.</p>
+                </div>
+                {message}
+                <div className={styles.roleChoiceGrid}>
+                  <button className={styles.roleChoice} type="button" onClick={() => handleRoleSelect("client")} disabled={submitting}>
+                    <Users size={22} aria-hidden="true" />
+                    <span>Мен той ұйымдастырамын</span>
+                  </button>
+                  <button className={styles.roleChoice} type="button" onClick={() => handleRoleSelect("vendor")} disabled={submitting}>
+                    <Briefcase size={22} aria-hidden="true" />
+                    <span>Мен қызмет көрсетемін</span>
+                  </button>
+                </div>
               </div>
-              <div className={styles.feature}>
-                <span className={styles.featureIcon}><Users size={22} aria-hidden="true" /></span>
-                <span><span className={styles.featureTitle}>Приглашайте</span><span className={styles.featureSubtitle}>гостей легко</span></span>
-              </div>
-              <div className={styles.feature}>
-                <span className={styles.featureIcon}><Heart size={22} aria-hidden="true" /></span>
-                <span><span className={styles.featureTitle}>Создавайте</span><span className={styles.featureSubtitle}>впечатления</span></span>
-              </div>
-            </div>
+            ) : null}
           </div>
         </section>
-        <footer className={styles.footer}>© 2026 toi.kz — Сделано с любовью в Казахстане ♥</footer>
       </div>
     </main>
   );
