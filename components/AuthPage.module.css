@@ -14,7 +14,10 @@
   background-position: center;
   display: grid;
   place-items: center;
-  padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-right: 18px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  padding-left: 18px;
   color: var(--text);
   overflow-x: hidden;
   position: relative;
@@ -543,8 +546,8 @@
 
 @media (max-width: 980px) {
   .page {
-    align-items: start;
-    place-items: start center;
+    align-items: center;
+    place-items: center;
   }
 
   .shell {
@@ -559,7 +562,10 @@
 
 @media (max-width: 520px) {
   .page {
-    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-right: 10px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: 10px;
     background-position: center top;
   }
 
