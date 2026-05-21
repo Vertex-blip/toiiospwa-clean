@@ -761,11 +761,6 @@ export default function AuthPage({ initialTab = "login" }) {
               </div>
             ) : null}
 
-            <button className={styles.adminLink} type="button" onClick={() => router.push("/admin/login")}>
-              <ShieldCheck size={16} aria-hidden="true" />
-              Админ вход
-            </button>
-
             <div className={styles.features} aria-label="Возможности toi.kz">
               <div className={styles.feature}>
                 <span className={styles.featureIcon}><Calendar size={22} aria-hidden="true" /></span>
