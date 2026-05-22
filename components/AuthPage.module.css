@@ -172,6 +172,12 @@
   color: rgba(226, 239, 255, 0.56);
 }
 
+.authLanguage {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
 .formPanel {
   animation: formIn 0.26s ease both;
 }

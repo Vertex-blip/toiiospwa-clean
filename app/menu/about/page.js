@@ -1,5 +1,5 @@
-import { ClientHomePage } from "@/components/PlatformPages";
+import { AboutPage as PlatformAboutPage } from "@/components/PlatformPages";
 
 export default function AboutPage() {
-  return <ClientHomePage />;
+  return <PlatformAboutPage />;
 }

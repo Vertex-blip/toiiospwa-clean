@@ -13,6 +13,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { useAppStore } from "@/lib/appStore";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { readUserProfile, saveUserProfile, saveVendorProfile } from "@/lib/firebaseData";
 import { auth, firebaseReady } from "@/lib/firebase";
 import { isAdmin } from "@/lib/roles";
@@ -20,7 +21,7 @@ import { isValidEmail, normalizeEmail, normalizePhone, sanitizeText } from "@/li
 import { ROLE_ROUTES, setSession } from "@/lib/session";
 import styles from "./AuthPage.module.css";
 
-const DEFAULT_CITY = "Алматы";
+const DEFAULT_CITY = "Астана";
 
 function PasswordField({ value, onChange, placeholder, ariaLabel, visible, onToggle, autoComplete }) {
   return (
@@ -419,6 +420,9 @@ export default function AuthPage({ initialTab = "login" }) {
               </button>
               <h1 className={styles.logoText}>TOI.KZ</h1>
               <p className={styles.tagline}>Premium wedding platform</p>
+              <div className={styles.authLanguage}>
+                <LanguageSwitcher compact />
+              </div>
             </header>
 
             {adminUnlocked ? (

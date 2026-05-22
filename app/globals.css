@@ -82,6 +82,28 @@ img {
   background: var(--bg);
 }
 
+.invite-page {
+  background:
+    radial-gradient(circle at 50% 6%, rgba(31, 183, 255, 0.2), transparent 30rem),
+    linear-gradient(120deg, rgba(1, 7, 16, 0.94), rgba(2, 12, 28, 0.7), rgba(0, 0, 0, 0.92)),
+    url("/images/toi-login-bg.png") center/cover;
+}
+
+.invite-card {
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.56), 0 0 58px rgba(31, 183, 255, 0.12);
+}
+
+.invite-gold-wedding .premium-card {
+  border-color: rgba(240, 211, 145, 0.34);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.56), 0 0 54px rgba(240, 211, 145, 0.1);
+}
+
+.invite-kazakh-traditional .invite-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025)),
+    rgba(5, 12, 24, 0.9);
+}
+
 .spinner {
   width: 30px;
   height: 30px;
@@ -289,6 +311,40 @@ img {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(113, 215, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(2, 8, 18, 0.58);
+  backdrop-filter: blur(16px);
+}
+
+.language-switcher button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.language-switcher button.active {
+  color: white;
+  background: linear-gradient(135deg, rgba(3, 87, 186, 0.95), rgba(31, 183, 255, 0.95));
+  box-shadow: 0 10px 26px rgba(31, 183, 255, 0.22);
+}
+
+.language-switcher.compact button {
+  min-width: 40px;
+  padding: 0 10px;
 }
 
 .icon-action {
@@ -639,6 +695,121 @@ img {
   padding: 18px;
 }
 
+.map-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
+  gap: 16px;
+}
+
+.map-canvas {
+  position: relative;
+  min-height: clamp(360px, 54vw, 560px);
+  overflow: hidden;
+  border: 1px solid rgba(113, 215, 255, 0.16);
+  border-radius: 24px;
+  background:
+    linear-gradient(90deg, rgba(113, 215, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(113, 215, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 28% 24%, rgba(31, 183, 255, 0.18), transparent 18rem),
+    radial-gradient(circle at 74% 72%, rgba(3, 87, 186, 0.2), transparent 18rem),
+    linear-gradient(135deg, rgba(4, 14, 30, 0.96), rgba(2, 6, 15, 0.96));
+  background-size: 44px 44px, 44px 44px, auto, auto, auto;
+}
+
+.map-canvas::before,
+.map-canvas::after {
+  content: "";
+  position: absolute;
+  inset: 16% 10%;
+  border: 1px solid rgba(113, 215, 255, 0.14);
+  border-radius: 55% 45% 48% 52%;
+  transform: rotate(-12deg);
+}
+
+.map-canvas::after {
+  inset: 30% 22%;
+  transform: rotate(18deg);
+  opacity: 0.7;
+}
+
+.map-pin {
+  position: absolute;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(165, 236, 255, 0.6);
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(135deg, rgba(3, 87, 186, 0.96), rgba(31, 183, 255, 0.96));
+  box-shadow: 0 0 0 8px rgba(31, 183, 255, 0.1), 0 14px 28px rgba(0, 0, 0, 0.32);
+  transform: translate(-50%, -50%);
+}
+
+.map-watermark {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid rgba(113, 215, 255, 0.16);
+  border-radius: 16px;
+  color: var(--muted);
+  background: rgba(2, 8, 18, 0.72);
+  backdrop-filter: blur(16px);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.map-list {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  max-height: clamp(360px, 54vw, 560px);
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.map-list-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(113, 215, 255, 0.14);
+  border-radius: 18px;
+  padding: 10px;
+  color: white;
+  background: rgba(255, 255, 255, 0.04);
+  text-align: left;
+}
+
+.map-list-card img {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.map-list-card strong,
+.map-list-card small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-list-card small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
 .vendor-card h3,
 .list-card h3 {
   margin: 0;
@@ -887,6 +1058,15 @@ img {
   .grid-3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .map-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .map-list {
+    max-height: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -916,6 +1096,15 @@ img {
   .list-card,
   .vendor-card-body {
     padding: 16px;
+  }
+
+  .map-canvas {
+    min-height: 330px;
+    border-radius: 20px;
+  }
+
+  .map-list {
+    grid-template-columns: 1fr;
   }
 
   .modal-overlay {

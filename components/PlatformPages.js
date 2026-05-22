@@ -1,14 +1,17 @@
 "use client";
 
-import { BOOKING_STATUSES, CATEGORIES, EVENT_TYPES, KZ_CITIES } from "@/lib/appData";
+import { ABOUT_CONTENT, BOOKING_STATUSES, CATEGORIES, EVENT_TYPES, KZ_CITIES, INVITATION_TEMPLATES } from "@/lib/appData";
 import { useAppStore } from "@/lib/appStore";
 import { clearSession, getSession, setSession, updateSession } from "@/lib/session";
 import { isValidEmail, isValidKazakhstanPhone, normalizeEmail, normalizePhone, sanitizeText } from "@/lib/sanitize";
 import { useToast } from "@/components/Toast";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { auth } from "@/lib/firebase";
-import { patchUserProfile, readUserProfile, saveVendorProfile as persistVendorProfile } from "@/lib/firebaseData";
+import { patchUserProfile, readOnce, readUserProfile, saveVendorProfile as persistVendorProfile } from "@/lib/firebaseData";
 import { isAdmin } from "@/lib/roles";
+import { db } from "@/lib/firebase";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { ref, set as firebaseSet } from "firebase/database";
 import {
   AlertTriangle,
   BarChart3,
@@ -139,7 +142,7 @@ export function ClientHomePage() {
   const recommended = store.vendors.filter((vendor) => vendor.status === "approved" && vendor.featured).slice(0, 3);
 
   const quickActions = [
-    { label: "Найти зал", icon: Building2, action: () => router.push("/menu/halls?category=Залы") },
+    { label: "Найти зал", icon: Building2, action: () => router.push("/menu/halls?category=Тойханалар") },
     { label: "Добавить гостей", icon: Users, action: () => router.push("/menu/plan?tab=guests") },
     { label: "Создать приглашение", icon: Send, action: () => router.push("/menu/plan?tab=invites") },
     { label: "Рассчитать бюджет", icon: Wallet, action: () => router.push("/menu/plan?tab=budget") },
@@ -273,13 +276,16 @@ export function ClientHomePage() {
 
 export function CatalogPage() {
   const showToast = useToast();
-  const { store, currentEvent, addBooking } = useAppStore();
+  const { store, currentEvent, addBooking, setStore } = useAppStore();
   const session = getSession() || {};
   const currentUser = store.users.find((user) => user.uid === session.uid) || {};
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("Все");
+  const [category, setCategory] = useState(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("category") || "Все" : "Все"));
   const [city, setCity] = useState("Все");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [availableDate, setAvailableDate] = useState("");
   const [sort, setSort] = useState("popular");
+  const [viewMode, setViewMode] = useState("list");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [selected, setSelected] = useState(null);
   const [bookingVendor, setBookingVendor] = useState(null);
@@ -295,20 +301,34 @@ export function CatalogPage() {
 
   const vendors = useMemo(() => {
     const text = query.trim().toLowerCase();
+    const center = { lat: 51.128, lng: 71.43 };
+    const distance = (vendor) => {
+      const point = vendor.location || {};
+      return Math.hypot(Number(point.lat || center.lat) - center.lat, Number(point.lng || center.lng) - center.lng);
+    };
     const filtered = store.vendors
       .filter((vendor) => vendor.status === "approved")
       .filter((vendor) => category === "Все" || vendor.category === category)
       .filter((vendor) => city === "Все" || vendor.city === city)
+      .filter((vendor) => !maxPrice || Number(vendor.priceFrom || 0) <= Number(maxPrice))
+      .filter((vendor) => !availableDate || (vendor.availableDates || vendor.availability || []).includes(availableDate))
       .filter((vendor) => !verifiedOnly || vendor.verified)
-      .filter((vendor) => !text || `${vendor.businessName} ${vendor.category} ${vendor.city}`.toLowerCase().includes(text));
+      .filter((vendor) => {
+        if (!text) return true;
+        return `${vendor.businessName} ${vendor.category} ${vendor.city} ${vendor.description} ${(vendor.features || []).join(" ")}`
+          .toLowerCase()
+          .includes(text);
+      });
 
     return filtered.sort((a, b) => {
       if (sort === "price") return (a.priceFrom || 0) - (b.priceFrom || 0);
       if (sort === "rating") return (b.rating || 0) - (a.rating || 0);
+      if (sort === "nearest") return distance(a) - distance(b);
+      if (sort === "available") return String((a.availableDates || [])[0] || "").localeCompare(String((b.availableDates || [])[0] || ""));
       if (sort === "newest") return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
       return Number(b.featured) - Number(a.featured) || (b.reviewsCount || 0) - (a.reviewsCount || 0);
     });
-  }, [category, city, query, sort, store.vendors, verifiedOnly]);
+  }, [availableDate, category, city, maxPrice, query, sort, store.vendors, verifiedOnly]);
 
   function openBooking(vendor) {
     setBookingVendor(vendor);
@@ -366,6 +386,26 @@ export function CatalogPage() {
     });
   }
 
+  function toggleFavorite(vendor) {
+    if (!session.uid) {
+      showToast("Алдымен аккаунтқа кіріңіз");
+      return;
+    }
+    const currentFavorites = store.favorites[session.uid] || {};
+    const nextValue = !currentFavorites[vendor.id];
+    setStore((current) => ({
+      ...current,
+      favorites: {
+        ...current.favorites,
+        [session.uid]: {
+          ...(current.favorites[session.uid] || {}),
+          [vendor.id]: nextValue,
+        },
+      },
+    }));
+    showToast(nextValue ? "Таңдаулыға қосылды" : "Таңдаулыдан алынды");
+  }
+
   return (
     <div className="page-stack">
       <SectionHead
@@ -395,22 +435,73 @@ export function CatalogPage() {
             </select>
           </label>
           <label>
+            <span className="chip" style={{ marginBottom: 8 }}><Wallet size={14} /> Max price</span>
+            <input className="premium-input" type="number" min="0" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="До, ₸" aria-label="Максимальная цена" />
+          </label>
+          <label>
+            <span className="chip" style={{ marginBottom: 8 }}><Calendar size={14} /> Дата</span>
+            <input className="premium-input" type="date" value={availableDate} onChange={(e) => setAvailableDate(e.target.value)} aria-label="Свободная дата" />
+          </label>
+          <label>
             <span className="chip" style={{ marginBottom: 8 }}><Star size={14} /> Сортировка</span>
             <select className="premium-select" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Сортировка">
               <option value="popular">Популярные</option>
               <option value="rating">Рейтинг</option>
               <option value="price">Цена</option>
+              <option value="nearest">Ближайшие</option>
+              <option value="available">Свободная дата</option>
               <option value="newest">Новые</option>
             </select>
           </label>
         </div>
-        <label className="list-row" style={{ justifyContent: "flex-start", marginTop: 14 }}>
-          <input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} />
-          <span>Только verified</span>
-        </label>
+        <div className="list-row" style={{ marginTop: 14, flexWrap: "wrap" }}>
+          <label className="list-row" style={{ justifyContent: "flex-start" }}>
+            <input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} />
+            <span>Только verified</span>
+          </label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className={viewMode === "list" ? "premium-button" : "secondary-button"} type="button" onClick={() => setViewMode("list")}>
+              <ListChecks size={16} /> List
+            </button>
+            <button className={viewMode === "map" ? "premium-button" : "secondary-button"} type="button" onClick={() => setViewMode("map")}>
+              <MapPin size={16} /> Map
+            </button>
+          </div>
+        </div>
       </section>
 
-      <div className="grid-3">
+      {viewMode === "map" ? (
+        <section className="premium-card premium-card-inner map-shell">
+          <div className="map-canvas" aria-label="Mock map of wedding services in Astana">
+            {vendors.slice(0, 28).map((vendor, index) => (
+              <button
+                key={vendor.id}
+                className="map-pin"
+                type="button"
+                style={{ left: `${12 + ((index * 17) % 78)}%`, top: `${16 + ((index * 23) % 66)}%` }}
+                onClick={() => setSelected(vendor)}
+                aria-label={vendor.businessName}
+              >
+                <MapPin size={18} />
+              </button>
+            ))}
+            <div className="map-watermark">TOI.KZ map mode · real map API ready</div>
+          </div>
+          <div className="map-list">
+            {vendors.slice(0, 8).map((vendor) => (
+              <button key={vendor.id} className="map-list-card" type="button" onClick={() => setSelected(vendor)}>
+                <img src={vendor.image} alt="" />
+                <span>
+                  <strong>{vendor.businessName}</strong>
+                  <small>{vendor.category} · {formatMoney(vendor.priceFrom)} · ★ {vendor.rating}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <div className={viewMode === "map" ? "grid-2" : "grid-3"}>
         {vendors.map((vendor) => (
           <article className="vendor-card premium-card" key={vendor.id}>
             <div className="vendor-card-image">
@@ -436,11 +527,18 @@ export function CatalogPage() {
               </div>
               <div className="grid-2">
                 <button className="ghost-button" type="button" onClick={() => toggleCompare(vendor)}>{compare.includes(vendor.id) ? "В сравнении" : "Сравнить"}</button>
+                <button className="ghost-button" type="button" onClick={() => toggleFavorite(vendor)}>
+                  <Heart size={16} fill={(store.favorites[session.uid] || {})[vendor.id] ? "currentColor" : "none"} />
+                  {(store.favorites[session.uid] || {})[vendor.id] ? "Saved" : "Favorite"}
+                </button>
+              </div>
+              <div className="grid-2">
                 {vendor.whatsapp ? (
                   <a className="ghost-button" href={`https://wa.me/${vendor.whatsapp}`} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>
                 ) : (
                   <button className="ghost-button" type="button" onClick={() => showToast("Контакты Coming soon")}>WhatsApp Coming soon</button>
                 )}
+                <button className="ghost-button" type="button" onClick={() => showToast("Чат с vendor Coming soon")}>Message Coming soon</button>
               </div>
             </div>
           </article>
@@ -768,8 +866,9 @@ export function PlanPage() {
             {["bride", "groom", "venue", "address", "dressCode", "timing"].map((field) => (
               <input key={field} className="premium-input" value={invitation[field] || ""} onChange={(e) => updateInvitation({ [field]: sanitizeText(e.target.value, 140) })} placeholder={{ bride: "Bride name", groom: "Groom name", venue: "Venue", address: "Address", dressCode: "Dress code", timing: "Timing" }[field]} aria-label={field} />
             ))}
-            <select className="premium-select" value={invitation.template || "dark premium"} onChange={(e) => updateInvitation({ template: e.target.value })} aria-label="Шаблон">
-              {["modern", "қазақы", "luxury", "minimal", "floral", "dark premium"].map((item) => <option key={item}>{item}</option>)}
+            <input className="premium-input" type="datetime-local" value={invitation.dateTime || ""} onChange={(e) => updateInvitation({ dateTime: e.target.value })} aria-label="Date and time" />
+            <select className="premium-select" value={invitation.template || "blue luxury TOI.KZ"} onChange={(e) => updateInvitation({ template: e.target.value })} aria-label="Шаблон">
+              {INVITATION_TEMPLATES.map((item) => <option key={item}>{item}</option>)}
             </select>
             <label className="list-row" style={{ justifyContent: "flex-start" }}><input type="checkbox" checked={invitation.rsvpEnabled !== false} onChange={(e) => updateInvitation({ rsvpEnabled: e.target.checked })} /> RSVP enabled</label>
           </div>
@@ -900,6 +999,10 @@ export function ProfilePage() {
             <input className="premium-input" value={profile.name} onChange={(e) => setProfile({ ...profile, name: sanitizeText(e.target.value, 80) })} placeholder="Имя" />
             <input className="premium-input" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: sanitizeText(e.target.value, 24) })} placeholder="+7..." />
             <select className="premium-select" value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })}>{KZ_CITIES.map((city) => <option key={city}>{city}</option>)}</select>
+            <div className="list-row">
+              <span className="muted">Тіл / Язык / Language</span>
+              <LanguageSwitcher />
+            </div>
             <button className="premium-button" type="submit">Сохранить</button>
             <button className="danger-button" type="button" onClick={logout}><LogOut size={16} /> Выйти</button>
           </form>
@@ -914,6 +1017,85 @@ export function ProfilePage() {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+export function AboutPage() {
+  const router = useRouter();
+  const showToast = useToast();
+
+  return (
+    <div className="page-stack">
+      <section className="hero-card premium-card">
+        <span className="status-pill success">Kazakhstan premium wedding PWA</span>
+        <h2>{ABOUT_CONTENT.title}</h2>
+        <p>{ABOUT_CONTENT.intro}</p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
+          <button className="premium-button" type="button" onClick={() => router.push("/menu/halls")}>
+            Каталогты ашу
+            <ChevronRight size={18} />
+          </button>
+          <button className="secondary-button" type="button" onClick={() => router.push("/menu/plan?tab=invites")}>
+            Digital шақыру жасау
+          </button>
+        </div>
+      </section>
+
+      <div className="grid-3">
+        <StatCard icon={Search} label="Категориялар" value={CATEGORIES.length} />
+        <StatCard icon={Briefcase} label="Demo vendor" value="110+" />
+        <StatCard icon={ShieldCheck} label="Security" value="Firebase" />
+      </div>
+
+      <section className="premium-card premium-card-inner">
+        <SectionHead
+          title="TOI.KZ не үшін керек?"
+          text={ABOUT_CONTENT.fromOldSite}
+          action={<span className="chip">KZ / RU / EN</span>}
+        />
+        <div className="grid-3" style={{ marginTop: 18 }}>
+          {ABOUT_CONTENT.points.map((point, index) => (
+            <article className="stat-card" key={point}>
+              {[Users, Briefcase, ShieldCheck][index] ? (() => {
+                const Icon = [Users, Briefcase, ShieldCheck][index];
+                return <Icon size={22} aria-hidden="true" />;
+              })() : null}
+              <strong style={{ fontSize: 20 }}>{index === 0 ? "Client" : index === 1 ? "Vendor" : "Admin"}</strong>
+              <span>{point}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="premium-card premium-card-inner">
+        <SectionHead title="Платформа экожүйесі" text="Бір аккаунтта той жоспары, marketplace, booking, RSVP және vendor/admin операциялары." />
+        <div className="grid-4" style={{ marginTop: 18 }}>
+          {[
+            ["Каталог", "Тойхана, асаба, фото, видео, декор және дәстүр қызметтері."],
+            ["Booking", "Дата, уақыт, қонақ саны және contact арқылы Firebase booking."],
+            ["Planning", "Checklist, timeline, budget, guests, seating және countdown."],
+            ["Invitations", "Shareable RSVP link және premium invitation templates."],
+          ].map(([title, text]) => (
+            <article className="premium-card list-card" key={title}>
+              <h3>{title}</h3>
+              <p className="muted" style={{ margin: 0 }}>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="premium-card premium-card-inner">
+        <div className="list-row">
+          <div>
+            <h3 style={{ margin: 0 }}>Support</h3>
+            <p className="muted" style={{ margin: "6px 0 0" }}>Барлық батырмалар жұмыс істейді немесе нақты Coming soon хабарын көрсетеді.</p>
+          </div>
+          <button className="secondary-button" type="button" onClick={() => showToast("Support chat Coming soon")}>
+            Support Coming soon
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1174,46 +1356,98 @@ export function AdminSection({ section = "dashboard" }) {
 }
 
 export function InvitePage({ eventId }) {
-  const { store, updateList } = useAppStore();
+  const { store } = useAppStore();
   const showToast = useToast();
-  const event = store.events.find((item) => item.id === eventId) || store.events[0];
-  const invitation = store.invitations[event?.id] || {};
-  const guests = store.guests[event?.id] || [];
+  const [publicEvent, setPublicEvent] = useState(null);
+  const [publicInvitation, setPublicInvitation] = useState(null);
+  const [responses, setResponses] = useState([]);
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [guestCount, setGuestCount] = useState(1);
+  const event = publicEvent || store.events.find((item) => item.id === eventId) || store.events[0];
+  const invitation = publicInvitation || store.invitations[eventId] || store.invitations[event?.id] || {};
 
-  function respond(status) {
+  useEffect(() => {
+    let disposed = false;
+    async function loadInvite() {
+      const [eventData, inviteData, responseData] = await Promise.all([
+        readOnce(`events/${eventId}`).catch(() => null),
+        readOnce(`invitations/${eventId}`).catch(() => null),
+        readOnce(`invitationResponses/${eventId}`).catch(() => null),
+      ]);
+      if (disposed) return;
+      if (eventData) setPublicEvent({ id: eventId, ...eventData });
+      if (inviteData) setPublicInvitation(inviteData);
+      if (responseData) setResponses(Object.values(responseData));
+    }
+    loadInvite();
+    return () => {
+      disposed = true;
+    };
+  }, [eventId]);
+
+  async function respond(status) {
     const safeName = sanitizeText(name, 80);
+    const safePhone = normalizePhone(phone);
     if (!safeName) {
       showToast("Введите имя");
       return;
     }
-    const existing = guests.find((guest) => guest.name.toLowerCase() === safeName.toLowerCase());
-    const nextGuests = existing
-      ? guests.map((guest) => guest.id === existing.id ? { ...guest, status } : guest)
-      : [{ id: `guest_public_${Date.now()}`, name: safeName, phone: "", relation: "RSVP", status, plusOne: false, children: 0, tableId: "" }, ...guests];
-    updateList("guests", event.id, nextGuests);
-    showToast("Жауабыңыз сақталды");
+    if (phone && !isValidKazakhstanPhone(safePhone)) {
+      showToast("Телефонды +7 форматында енгізіңіз");
+      return;
+    }
+
+    const responseId = `rsvp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const payload = {
+      id: responseId,
+      eventId,
+      name: safeName,
+      phone: safePhone,
+      guestCount: Number(guestCount || 1),
+      status,
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      if (!db) throw new Error("Firebase is not configured");
+      await firebaseSet(ref(db, `invitationResponses/${eventId}/${responseId}`), payload);
+      setResponses((current) => [payload, ...current]);
+      setName("");
+      setPhone("");
+      setGuestCount(1);
+      showToast("Жауабыңыз сақталды");
+    } catch {
+      showToast("RSVP сақталмады. Firebase rules тексеріңіз.");
+    }
   }
 
   return (
-    <main className="app-loader" style={{ padding: 18 }}>
-      <section className="premium-card premium-card-inner" style={{ width: "min(760px, 96vw)", textAlign: "center" }}>
+    <main className={`app-loader invite-page invite-${String(invitation.template || "blue luxury").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`} style={{ padding: 18 }}>
+      <section className="premium-card premium-card-inner invite-card" style={{ width: "min(820px, 96vw)", textAlign: "center" }}>
         <img src="/icons/logo-nav.png" alt="toi.kz" style={{ display: "block", margin: "0 auto 18px", width: 96, height: 96, objectFit: "contain" }} />
         <h1 style={{ fontFamily: "Playfair Display, Georgia, serif", fontSize: "clamp(34px, 7vw, 62px)", margin: 0 }}>{invitation.bride || "Bride"} & {invitation.groom || "Groom"}</h1>
         <p className="muted" style={{ fontSize: 18 }}>{invitation.message || "Сізді қуанышымызға ортақтасуға шақырамыз."}</p>
         <div className="grid-3" style={{ marginTop: 24, textAlign: "left" }}>
-          <StatCard icon={Calendar} label="Дата" value={invitation.date || event?.date} />
+          <StatCard icon={Calendar} label="Дата" value={invitation.dateTime ? invitation.dateTime.replace("T", " ") : invitation.date || event?.date} />
           <StatCard icon={Building2} label="Venue" value={invitation.venue || "toi.kz"} />
           <StatCard icon={MapPin} label="Address" value={invitation.address || event?.city} />
         </div>
+        {invitation.timing ? <p className="muted" style={{ marginTop: 18 }}>Бағдарлама: {invitation.timing}</p> : null}
+        {invitation.dressCode ? <p className="chip" style={{ margin: "18px auto 0" }}>Dress code: {invitation.dressCode}</p> : null}
         {invitation.rsvpEnabled !== false ? (
           <div className="page-stack" style={{ marginTop: 24 }}>
             <input className="premium-input" value={name} onChange={(e) => setName(sanitizeText(e.target.value, 80))} placeholder="Атыңызды жазыңыз" aria-label="Имя гостя" />
+            <div className="field-grid">
+              <input className="premium-input" value={phone} onChange={(e) => setPhone(sanitizeText(e.target.value, 24))} placeholder="+7..." aria-label="Телефон" />
+              <input className="premium-input" type="number" min="1" max="10" value={guestCount} onChange={(e) => setGuestCount(e.target.value)} placeholder="Қонақ саны" aria-label="Количество гостей" />
+            </div>
             <div className="grid-3">
               <button className="premium-button" type="button" onClick={() => respond("coming")}>Келемін</button>
               <button className="secondary-button" type="button" onClick={() => respond("unknown")}>Мүмкін</button>
               <button className="danger-button" type="button" onClick={() => respond("declined")}>Келмеймін</button>
             </div>
+            <p className="muted" style={{ margin: 0 }}>{responses.length} RSVP жауап сақталды</p>
           </div>
         ) : null}
       </section>

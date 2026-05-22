@@ -17,7 +17,7 @@
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).val() === true)",
         ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (auth.uid === $uid && newData.child('uid').val() === auth.uid && newData.child('role').val() !== 'admin'))",
-        ".validate": "newData.hasChildren(['uid', 'role', 'email']) && newData.child('uid').val() === $uid && newData.child('role').val().matches(/^(client|vendor)$/) && newData.child('email').isString() && newData.child('email').val().length <= 254 && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 80)) && (!newData.child('phone').exists() || (newData.child('phone').isString() && (newData.child('phone').val() == '' || newData.child('phone').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('phoneNumber').exists() || (newData.child('phoneNumber').isString() && (newData.child('phoneNumber').val() == '' || newData.child('phoneNumber').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('phoneNumberNormalized').exists() || (newData.child('phoneNumberNormalized').isString() && (newData.child('phoneNumberNormalized').val() == '' || newData.child('phoneNumberNormalized').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('city').exists() || (newData.child('city').isString() && newData.child('city').val().length <= 80)) && (!newData.child('businessName').exists() || (newData.child('businessName').isString() && newData.child('businessName').val().length <= 120)) && (!newData.child('status').exists() || newData.child('status').val().matches(/^(active|blocked|pendingApproval)$/))"
+        ".validate": "newData.hasChildren(['uid', 'role', 'email']) && newData.child('uid').val() === $uid && newData.child('role').val().matches(/^(|client|vendor)$/) && newData.child('email').isString() && newData.child('email').val().length <= 254 && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 80)) && (!newData.child('phone').exists() || (newData.child('phone').isString() && (newData.child('phone').val() == '' || newData.child('phone').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('phoneNumber').exists() || (newData.child('phoneNumber').isString() && (newData.child('phoneNumber').val() == '' || newData.child('phoneNumber').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('phoneNumberNormalized').exists() || (newData.child('phoneNumberNormalized').isString() && (newData.child('phoneNumberNormalized').val() == '' || newData.child('phoneNumberNormalized').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('city').exists() || (newData.child('city').isString() && newData.child('city').val().length <= 80)) && (!newData.child('businessName').exists() || (newData.child('businessName').isString() && newData.child('businessName').val().length <= 120)) && (!newData.child('status').exists() || newData.child('status').val().matches(/^(active|blocked|pendingApproval)$/))"
       }
     },
 
@@ -74,6 +74,45 @@
       }
     },
 
+    "invitationResponses": {
+      "$eventId": {
+        ".read": "root.child('invitations').child($eventId).child('rsvpEnabled').val() === true || (auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true))",
+        "$responseId": {
+          ".write": "root.child('invitations').child($eventId).child('rsvpEnabled').val() === true || (auth != null && (root.child('events').child($eventId).child('userId').val() === auth.uid || root.child('admins').child(auth.uid).val() === true))",
+          ".validate": "newData.hasChildren(['id', 'eventId', 'name', 'status', 'createdAt']) && newData.child('eventId').val() === $eventId && newData.child('id').val() === $responseId && newData.child('name').isString() && newData.child('name').val().length <= 80 && newData.child('status').val().matches(/^(coming|declined|unknown)$/) && (!newData.child('phone').exists() || (newData.child('phone').isString() && (newData.child('phone').val() == '' || newData.child('phone').val().matches(/^\\+7[0-9]{10}$/)))) && (!newData.child('guestCount').exists() || (newData.child('guestCount').isNumber() && newData.child('guestCount').val() >= 1 && newData.child('guestCount').val() <= 10))"
+        }
+      }
+    },
+
+    "favorites": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).val() === true)",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "busyDates": {
+      "$vendorId": {
+        ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('vendors').child($vendorId).child('ownerId').val() === auth.uid)",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('vendors').child($vendorId).child('ownerId').val() === auth.uid)"
+      }
+    },
+
+    "locations": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+
+    "categories": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+
+    "cities": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+
     "notifications": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).val() === true)",
@@ -105,6 +144,13 @@
     "adminContent": {
       ".read": true,
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+
+    "logs": {
+      "$logId": {
+        ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+      }
     },
 
     "Users": {

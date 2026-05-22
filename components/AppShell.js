@@ -1,7 +1,10 @@
 "use client";
 
 import { ToastProvider } from "@/components/Toast";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/components/LanguageContext";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { t } from "@/lib/i18n";
 import { Bell, ShieldCheck } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -22,6 +25,7 @@ export default function AppShell({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { lang } = useLanguage();
   const { user, checking } = useRequireAuth({ allowedRoles });
 
   if (checking) {
@@ -58,7 +62,7 @@ export default function AppShell({
                   onClick={() => router.push(item.href)}
                 >
                   <Icon size={20} aria-hidden="true" />
-                  <span>{item.label}</span>
+                  <span>{item.i18nKey ? t(item.i18nKey, lang) : item.label}</span>
                   {item.badge ? <em>{item.badge}</em> : null}
                 </button>
               );
@@ -76,7 +80,7 @@ export default function AppShell({
               <button
                 className="icon-action"
                 type="button"
-                aria-label="Уведомления"
+                aria-label={t("notifications", lang)}
                 onClick={() =>
                   router.push(user?.role === "vendor" ? "/vendor/messages" : user?.role === "admin" ? "/admin/messages" : "/menu/profile")
                 }
@@ -84,6 +88,7 @@ export default function AppShell({
                 <Bell size={20} />
                 {unreadCount ? <span>{unreadCount}</span> : null}
               </button>
+              <LanguageSwitcher compact />
               <div className="mini-profile">
                 <ShieldCheck size={18} aria-hidden="true" />
                 <span>{user?.name || "toi.kz"}</span>
@@ -106,7 +111,7 @@ export default function AppShell({
                 onClick={() => router.push(item.href)}
               >
                 <Icon size={20} aria-hidden="true" />
-                <span>{item.label}</span>
+                <span>{item.i18nKey ? t(item.i18nKey, lang) : item.label}</span>
                 {item.badge ? <em>{item.badge}</em> : null}
               </button>
             );
