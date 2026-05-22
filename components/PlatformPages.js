@@ -142,16 +142,16 @@ export function ClientHomePage() {
   const recommended = store.vendors.filter((vendor) => vendor.status === "approved" && vendor.featured).slice(0, 3);
 
   const quickActions = [
-    { label: "Найти зал", icon: Building2, action: () => router.push("/menu/halls?category=Тойханалар") },
+    { label: "Найти зал", icon: Building2, action: () => router.push("/menu/catalog?category=Тойханалар") },
     { label: "Добавить гостей", icon: Users, action: () => router.push("/menu/plan?tab=guests") },
     { label: "Создать приглашение", icon: Send, action: () => router.push("/menu/plan?tab=invites") },
-    { label: "Рассчитать бюджет", icon: Wallet, action: () => router.push("/menu/plan?tab=budget") },
+    { label: "Smart Budget", icon: Wallet, action: () => router.push("/menu/budget") },
   ];
 
   function handleCreateEvent() {
     const created = addEvent({
       title: "Мой той",
-      city: session.city || "Алматы",
+      city: session.city || "Астана",
       type: "Той",
       date: "2026-09-12",
       guestCount: 100,
@@ -171,7 +171,7 @@ export function ClientHomePage() {
             {event ? "Продолжить подготовку" : "Начать планирование"}
             <ChevronRight size={18} />
           </button>
-          <button className="secondary-button" type="button" onClick={() => router.push("/menu/halls")}>
+          <button className="secondary-button" type="button" onClick={() => router.push("/menu/catalog")}>
             Открыть каталог
           </button>
         </div>
@@ -274,7 +274,262 @@ export function ClientHomePage() {
   );
 }
 
-export function CatalogPage() {
+export function CatalogPage({ initialView = "list" }) {
+  const showToast = useToast();
+  const { store, currentEvent, addBooking, setStore } = useAppStore();
+  const session = getSession() || {};
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
+  const [sort, setSort] = useState("premium");
+  const [viewMode, setViewMode] = useState(initialView);
+  const [selected, setSelected] = useState(null);
+  const [bookingVendor, setBookingVendor] = useState(null);
+  const [bookingForm, setBookingForm] = useState({ date: "", time: "18:00", guests: currentEvent?.guestCount || 100, phone: "", comment: "" });
+
+  const center = { lat: 51.128, lng: 71.43 };
+  const distance = (vendor) => {
+    const point = vendor.coordinates || vendor.location || center;
+    return Math.hypot(Number(point.lat || center.lat) - center.lat, Number(point.lng || center.lng) - center.lng);
+  };
+
+  const vendors = useMemo(() => {
+    const text = query.trim().toLowerCase();
+    const rows = store.vendors
+      .filter((vendor) => vendor.status === "approved")
+      .filter((vendor) => vendor.city === "Астана")
+      .filter((vendor) => category === "all" || vendor.categoryId === category || vendor.category === category)
+      .filter((vendor) => {
+        if (!text) return true;
+        return `${vendor.businessName} ${vendor.name} ${vendor.category} ${vendor.address} ${vendor.description} ${(vendor.tags || vendor.features || []).join(" ")}`
+          .toLowerCase()
+          .includes(text);
+      });
+
+    return rows.sort((a, b) => {
+      if (sort === "cheapest") return Number(a.priceFrom || 0) - Number(b.priceFrom || 0);
+      if (sort === "rating") return Number(b.rating || 0) - Number(a.rating || 0);
+      if (sort === "nearest") return distance(a) - distance(b);
+      return Number(b.premium || b.featured || 0) - Number(a.premium || a.featured || 0) || Number(b.rating || 0) - Number(a.rating || 0);
+    });
+  }, [category, query, sort, store.vendors]);
+
+  function toggleFavorite(vendor) {
+    if (!session.uid) {
+      showToast("Алдымен аккаунтқа кіріңіз");
+      return;
+    }
+    const nextValue = !(store.favorites[session.uid] || {})[vendor.id];
+    setStore((current) => ({
+      ...current,
+      favorites: {
+        ...current.favorites,
+        [session.uid]: { ...(current.favorites[session.uid] || {}), [vendor.id]: nextValue },
+      },
+    }));
+    showToast(nextValue ? "Таңдаулыға қосылды" : "Таңдаулыдан алынды");
+  }
+
+  function openBooking(vendor) {
+    setBookingVendor(vendor);
+    setBookingForm((current) => ({ ...current, guests: currentEvent?.guestCount || current.guests }));
+  }
+
+  async function submitBooking(e) {
+    e.preventDefault();
+    const phone = normalizePhone(bookingForm.phone);
+    if (!bookingForm.date || !bookingForm.time || !bookingForm.guests || !isValidKazakhstanPhone(phone)) {
+      showToast("Күн, уақыт, қонақ саны және +7 форматындағы телефонды толтырыңыз");
+      return;
+    }
+
+    try {
+      const booking = await addBooking({
+        clientId: session.uid,
+        vendorId: bookingVendor.id,
+        serviceId: `service_${bookingVendor.id}`,
+        eventId: currentEvent?.id || "event-main",
+        serviceName: bookingVendor.businessName,
+        vendorName: bookingVendor.businessName,
+        date: bookingForm.date,
+        time: bookingForm.time,
+        guests: Number(bookingForm.guests),
+        eventType: currentEvent?.type || "Үйлену той",
+        price: Number(bookingVendor.priceFrom || 0),
+        deposit: Math.round(Number(bookingVendor.priceFrom || 0) * 0.1),
+        comment: sanitizeText(bookingForm.comment, 400),
+        contactPhone: phone,
+      });
+      setBookingVendor(null);
+      showToast(`Заявка #${booking.id.slice(-5)} жіберілді`);
+    } catch {
+      showToast("Бронь сақталмады. Firebase rules тексеріңіз.");
+    }
+  }
+
+  const favoriteMap = store.favorites[session.uid] || {};
+  const mapVendors = vendors.slice(0, 18);
+
+  return (
+    <div className="catalog-mobile-shell page-stack">
+      <section className="catalog-top premium-card premium-card-inner">
+        <div>
+          <span className="status-pill success">Астана · {vendors.length} services</span>
+          <h2>Каталог және карта</h2>
+          <p>Тойхана, асаба, фото, видео, декор және басқа premium қызметтерді Астана бойынша табыңыз.</p>
+        </div>
+        <div className="catalog-search-row">
+          <label className="catalog-search">
+            <Search size={18} />
+            <input value={query} onChange={(e) => setQuery(sanitizeText(e.target.value, 80))} placeholder="Іздеу: тойхана, фотограф, декор..." aria-label="Каталог іздеу" />
+          </label>
+          <div className="catalog-view-toggle" aria-label="List map toggle">
+            <button className={viewMode === "list" ? "active" : ""} type="button" onClick={() => setViewMode("list")}>List</button>
+            <button className={viewMode === "map" ? "active" : ""} type="button" onClick={() => setViewMode("map")}>Map</button>
+          </div>
+        </div>
+      </section>
+
+      <section className="catalog-controls">
+        <div className="category-chip-row" aria-label="Категориялар">
+          <button className={category === "all" ? "active" : ""} type="button" onClick={() => setCategory("all")}>Барлығы</button>
+          {CATEGORIES.map((item) => (
+            <button className={category === item.id ? "active" : ""} type="button" key={item.id} onClick={() => setCategory(item.id)}>{item.name}</button>
+          ))}
+        </div>
+        <div className="filter-row">
+          <select className="premium-select" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Сортировка">
+            <option value="premium">Premium</option>
+            <option value="cheapest">Cheapest</option>
+            <option value="rating">Rating</option>
+            <option value="nearest">Nearest</option>
+          </select>
+          <button className="secondary-button" type="button" onClick={() => showToast("Кеңейтілген filters Жақында")}>
+            <Filter size={16} /> Filters
+          </button>
+        </div>
+      </section>
+
+      {viewMode === "map" ? (
+        <section className="catalog-map-screen premium-card">
+          <div className="astana-map">
+            <span className="map-watermark">ASTANA · TOI.KZ</span>
+            {mapVendors.map((vendor, index) => (
+              <button
+                key={vendor.id}
+                className={`service-pin ${selected?.id === vendor.id ? "active" : ""}`}
+                style={{ left: `${12 + ((index * 19) % 76)}%`, top: `${14 + ((index * 23) % 68)}%` }}
+                type="button"
+                onClick={() => setSelected(vendor)}
+                aria-label={vendor.businessName}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+          <div className="map-bottom-sheet">
+            <div className="sheet-handle" />
+            <strong>Жақын қызметтер</strong>
+            <div className="map-card-strip">
+              {mapVendors.slice(0, 8).map((vendor) => (
+                <button className="mini-service-card" key={vendor.id} type="button" onClick={() => setSelected(vendor)}>
+                  <img src={vendor.image} alt="" />
+                  <span>
+                    <b>{vendor.businessName}</b>
+                    <small>{vendor.category} · {formatMoney(vendor.priceFrom)} · ★ {vendor.rating}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="service-card-list">
+          {vendors.map((vendor) => (
+            <article className="service-card premium-card" key={vendor.id}>
+              <img src={vendor.image} alt={vendor.businessName} />
+              <div className="service-card-body">
+                <div className="service-card-head">
+                  <span className="status-pill success">{vendor.category}</span>
+                  <button className="icon-action" type="button" onClick={() => toggleFavorite(vendor)} aria-label="Favorite">
+                    <Heart size={17} fill={favoriteMap[vendor.id] ? "currentColor" : "none"} />
+                  </button>
+                </div>
+                <h3>{vendor.businessName}</h3>
+                <p>{vendor.description}</p>
+                <div className="service-meta">
+                  <span><MapPin size={14} /> {vendor.address}</span>
+                  <span><Star size={14} /> {vendor.rating}</span>
+                  <span><Wallet size={14} /> {formatMoney(vendor.priceFrom)}</span>
+                </div>
+                <div className="category-chip-row compact">
+                  {(vendor.tags || vendor.features || []).slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}
+                </div>
+                <div className="service-actions">
+                  <button className="secondary-button" type="button" onClick={() => setSelected(vendor)}>View details</button>
+                  <button className="ghost-button" type="button" onClick={() => toggleFavorite(vendor)}>Favorite</button>
+                  <button className="premium-button" type="button" onClick={() => openBooking(vendor)}>Book</button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {!vendors.length ? <EmptyState title="Ештеңе табылмады" text="Іздеу сөзін немесе категорияны өзгертіңіз." /> : null}
+
+      {selected ? (
+        <Modal title={selected.businessName} onClose={() => setSelected(null)} wide>
+          <div className="service-detail">
+            <img src={selected.image} alt={selected.businessName} />
+            <div className="page-stack">
+              <div>
+                <StatusPill status="approved">{selected.category} · Астана</StatusPill>
+                <h2>{selected.businessName}</h2>
+                <p className="muted">{selected.description}</p>
+              </div>
+              <div className="grid-2">
+                <StatCard icon={Wallet} label="Баға" value={formatMoney(selected.priceFrom)} />
+                <StatCard icon={Star} label="Rating" value={selected.rating} />
+              </div>
+              <p className="muted"><MapPin size={15} /> {selected.address}</p>
+              <div className="category-chip-row compact">
+                {(selected.tags || selected.features || []).map((tag) => <span key={tag}>{tag}</span>)}
+              </div>
+              <div className="premium-card premium-card-inner soft-panel">
+                <strong>Availability</strong>
+                <div className="category-chip-row compact">
+                  {(selected.availability || selected.availableDates || []).map((date) => <span key={date}>{date}</span>)}
+                </div>
+              </div>
+              <div className="service-actions">
+                <button className="premium-button" type="button" onClick={() => { setSelected(null); openBooking(selected); }}>Book</button>
+                <button className="secondary-button" type="button" onClick={() => toggleFavorite(selected)}>Favorite</button>
+                <a className="ghost-button" href={`tel:${selected.phone}`}><Phone size={16} /> Call</a>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {bookingVendor ? (
+        <Modal title={`Бронь: ${bookingVendor.businessName}`} onClose={() => setBookingVendor(null)}>
+          <form className="page-stack" onSubmit={submitBooking}>
+            <div className="field-grid">
+              <input className="premium-input" type="date" value={bookingForm.date} min={new Date().toISOString().split("T")[0]} onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })} aria-label="Күн" />
+              <input className="premium-input" type="time" value={bookingForm.time} onChange={(e) => setBookingForm({ ...bookingForm, time: e.target.value })} aria-label="Уақыт" />
+              <input className="premium-input" type="number" min="1" value={bookingForm.guests} onChange={(e) => setBookingForm({ ...bookingForm, guests: e.target.value })} placeholder="Қонақ саны" aria-label="Қонақ саны" />
+              <input className="premium-input" value={bookingForm.phone} onChange={(e) => setBookingForm({ ...bookingForm, phone: sanitizeText(e.target.value, 24) })} placeholder="+7..." aria-label="Телефон" />
+            </div>
+            <textarea className="premium-textarea" value={bookingForm.comment} onChange={(e) => setBookingForm({ ...bookingForm, comment: sanitizeText(e.target.value, 400) })} placeholder="Комментарий" />
+            <button className="premium-button" type="submit">Бронь жіберу</button>
+          </form>
+        </Modal>
+      ) : null}
+    </div>
+  );
+}
+
+function LegacyCatalogPage() {
   const showToast = useToast();
   const { store, currentEvent, addBooking, setStore } = useAppStore();
   const session = getSession() || {};
@@ -950,11 +1205,11 @@ export function ProfilePage() {
   const { store, markNotificationsRead, setStore } = useAppStore();
   const session = getSession() || {};
   const storedProfile = store.users.find((user) => user.uid === session.uid) || session;
-  const [profile, setProfile] = useState({ name: storedProfile.name || "", city: storedProfile.city || "Алматы", phone: storedProfile.phone || "" });
+  const [profile, setProfile] = useState({ name: storedProfile.name || "", city: storedProfile.city || "Астана", phone: storedProfile.phone || "" });
   const notifications = store.notifications[session.uid] || [];
 
   useEffect(() => {
-    setProfile({ name: storedProfile.name || "", city: storedProfile.city || "Алматы", phone: storedProfile.phone || "" });
+    setProfile({ name: storedProfile.name || "", city: storedProfile.city || "Астана", phone: storedProfile.phone || "" });
   }, [storedProfile.name, storedProfile.city, storedProfile.phone]);
 
   async function logout() {
@@ -1106,7 +1361,7 @@ export function VendorSection({ section = "dashboard" }) {
   const { store, setStore, updateBooking, uid } = useAppStore();
   const vendor = store.vendors.find((item) => item.ownerId === session.uid || item.id === session.uid);
   const [profile, setProfile] = useState(vendor || {});
-  const [serviceForm, setServiceForm] = useState({ title: "", category: vendor?.category || "Залы", priceFrom: "", city: vendor?.city || "Алматы", description: "" });
+  const [serviceForm, setServiceForm] = useState({ title: "", category: vendor?.category || "Залы", priceFrom: "", city: vendor?.city || "Астана", description: "" });
   const [busyDate, setBusyDate] = useState("");
   const orders = store.bookings.filter((booking) => booking.vendorId === vendor?.id || booking.vendorName === vendor?.businessName);
   const vendorServices = store.services.filter((service) => service.vendorId === vendor?.id);
@@ -1145,7 +1400,7 @@ export function VendorSection({ section = "dashboard" }) {
       ...current,
       services: [{ ...serviceForm, id: uid("service"), vendorId: vendor.id, priceFrom: Number(serviceForm.priceFrom), active: true, images: [vendor.image], features: [] }, ...current.services],
     }));
-    setServiceForm({ title: "", category: vendor?.category || "Залы", priceFrom: "", city: vendor?.city || "Алматы", description: "" });
+    setServiceForm({ title: "", category: vendor?.category || "Залы", priceFrom: "", city: vendor?.city || "Астана", description: "" });
   }
 
   function renderDashboard() {
@@ -1176,7 +1431,7 @@ export function VendorSection({ section = "dashboard" }) {
   }
 
   function renderProfile() {
-    return <section className="premium-card premium-card-inner"><form className="page-stack" onSubmit={saveVendorProfile}><input className="premium-input" value={profile.businessName || ""} onChange={(e) => setProfile({ ...profile, businessName: sanitizeText(e.target.value, 120), title: sanitizeText(e.target.value, 120) })} placeholder="Название бизнеса" /><select className="premium-select" value={profile.category || "Залы"} onChange={(e) => setProfile({ ...profile, category: e.target.value })}>{CATEGORIES.map((item) => <option key={item.id}>{item.name}</option>)}</select><select className="premium-select" value={profile.city || "Алматы"} onChange={(e) => setProfile({ ...profile, city: e.target.value })}>{KZ_CITIES.map((city) => <option key={city}>{city}</option>)}</select><input className="premium-input" type="number" value={profile.priceFrom || ""} onChange={(e) => setProfile({ ...profile, priceFrom: Number(e.target.value) })} placeholder="Цена от" /><textarea className="premium-textarea" value={profile.description || ""} onChange={(e) => setProfile({ ...profile, description: sanitizeText(e.target.value, 500) })} placeholder="Описание услуги" /><div className="field-grid"><input className="premium-input" value={profile.whatsapp || ""} onChange={(e) => setProfile({ ...profile, whatsapp: sanitizeText(e.target.value, 32) })} placeholder="WhatsApp" /><input className="premium-input" value={profile.instagram || ""} onChange={(e) => setProfile({ ...profile, instagram: sanitizeText(e.target.value, 80) })} placeholder="Instagram" /></div><button className="premium-button" type="submit">Сохранить профиль</button></form></section>;
+    return <section className="premium-card premium-card-inner"><form className="page-stack" onSubmit={saveVendorProfile}><input className="premium-input" value={profile.businessName || ""} onChange={(e) => setProfile({ ...profile, businessName: sanitizeText(e.target.value, 120), title: sanitizeText(e.target.value, 120) })} placeholder="Название бизнеса" /><select className="premium-select" value={profile.category || "Залы"} onChange={(e) => setProfile({ ...profile, category: e.target.value })}>{CATEGORIES.map((item) => <option key={item.id}>{item.name}</option>)}</select><select className="premium-select" value={profile.city || "Астана"} onChange={(e) => setProfile({ ...profile, city: e.target.value })}>{KZ_CITIES.map((city) => <option key={city}>{city}</option>)}</select><input className="premium-input" type="number" value={profile.priceFrom || ""} onChange={(e) => setProfile({ ...profile, priceFrom: Number(e.target.value) })} placeholder="Цена от" /><textarea className="premium-textarea" value={profile.description || ""} onChange={(e) => setProfile({ ...profile, description: sanitizeText(e.target.value, 500) })} placeholder="Описание услуги" /><div className="field-grid"><input className="premium-input" value={profile.whatsapp || ""} onChange={(e) => setProfile({ ...profile, whatsapp: sanitizeText(e.target.value, 32) })} placeholder="WhatsApp" /><input className="premium-input" value={profile.instagram || ""} onChange={(e) => setProfile({ ...profile, instagram: sanitizeText(e.target.value, 80) })} placeholder="Instagram" /></div><button className="premium-button" type="submit">Сохранить профиль</button></form></section>;
   }
 
   function renderServices() {
@@ -1258,7 +1513,7 @@ export function AdminLoginPage() {
         phone: profilePhone,
         email: credential.user.email || loginEmail,
         emailVerified: credential.user.emailVerified,
-        city: profile?.city || "Алматы",
+        city: profile?.city || "Астана",
         status: "active",
         createdAt: profile?.createdAt || new Date().toISOString(),
       };

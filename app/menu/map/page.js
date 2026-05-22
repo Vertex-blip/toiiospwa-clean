@@ -1,5 +1,5 @@
-import { InternalModulePage } from "@/components/PlatformPages";
+import { CatalogPage } from "@/components/PlatformPages";
 
 export default function MapRoute() {
-  return <InternalModulePage section="map" />;
+  return <CatalogPage initialView="map" />;
 }

@@ -564,6 +564,336 @@ img {
   font-size: 13px;
 }
 
+.catalog-mobile-shell {
+  gap: 14px;
+}
+
+.catalog-top {
+  display: grid;
+  gap: 16px;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(31, 183, 255, 0.18), transparent 18rem),
+    linear-gradient(135deg, rgba(8, 20, 38, 0.94), rgba(3, 7, 17, 0.84));
+}
+
+.catalog-top h2 {
+  margin: 10px 0 8px;
+  font-size: clamp(26px, 4vw, 40px);
+  line-height: 1.05;
+}
+
+.catalog-top p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.catalog-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.catalog-search {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid rgba(113, 215, 255, 0.2);
+  border-radius: 18px;
+  background: rgba(2, 8, 18, 0.62);
+}
+
+.catalog-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: white;
+  background: transparent;
+  font: inherit;
+}
+
+.catalog-view-toggle {
+  display: inline-flex;
+  padding: 4px;
+  border: 1px solid rgba(113, 215, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(2, 8, 18, 0.7);
+}
+
+.catalog-view-toggle button {
+  min-height: 40px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 800;
+}
+
+.catalog-view-toggle button.active {
+  color: white;
+  background: linear-gradient(135deg, rgba(31, 183, 255, 0.9), rgba(12, 96, 214, 0.9));
+  box-shadow: 0 10px 28px rgba(31, 183, 255, 0.22);
+}
+
+.catalog-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.category-chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 6px;
+  scrollbar-width: none;
+}
+
+.category-chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.category-chip-row button,
+.category-chip-row span {
+  flex: 0 0 auto;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(113, 215, 255, 0.16);
+  border-radius: 999px;
+  padding: 0 14px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.045);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.category-chip-row button.active {
+  color: white;
+  border-color: rgba(113, 215, 255, 0.36);
+  background: rgba(31, 183, 255, 0.14);
+}
+
+.category-chip-row.compact {
+  flex-wrap: wrap;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.category-chip-row.compact span {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.service-card-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.service-card {
+  overflow: hidden;
+}
+
+.service-card > img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+}
+
+.service-card-body {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.service-card-head,
+.service-actions,
+.service-meta {
+  display: flex;
+  gap: 8px;
+}
+
+.service-card-head {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.service-card h3 {
+  margin: 0;
+  color: white;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.service-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.service-meta {
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.service-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.service-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.catalog-map-screen {
+  position: relative;
+  overflow: hidden;
+  min-height: min(720px, calc(100dvh - 170px));
+  border-radius: 26px;
+}
+
+.astana-map {
+  position: relative;
+  min-height: min(660px, calc(100dvh - 170px));
+  background:
+    radial-gradient(circle at 34% 30%, rgba(31, 183, 255, 0.2), transparent 13rem),
+    radial-gradient(circle at 72% 64%, rgba(102, 126, 234, 0.18), transparent 14rem),
+    linear-gradient(135deg, rgba(6, 17, 32, 0.98), rgba(2, 7, 16, 0.96));
+}
+
+.astana-map::before {
+  content: "";
+  position: absolute;
+  inset: 10%;
+  border: 1px solid rgba(113, 215, 255, 0.12);
+  border-radius: 44% 56% 52% 48%;
+  transform: rotate(-12deg);
+}
+
+.service-pin {
+  position: absolute;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(135deg, #1fb7ff, #0c60d6);
+  box-shadow: 0 12px 28px rgba(31, 183, 255, 0.26);
+  font-weight: 900;
+}
+
+.service-pin.active {
+  transform: scale(1.12);
+  background: linear-gradient(135deg, #fff, #7bdcff);
+  color: #04101d;
+}
+
+.map-bottom-sheet {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(113, 215, 255, 0.18);
+  border-radius: 24px;
+  background: rgba(3, 7, 17, 0.86);
+  backdrop-filter: blur(22px);
+}
+
+.sheet-handle {
+  width: 42px;
+  height: 4px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.map-card-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.map-card-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.mini-service-card {
+  flex: 0 0 260px;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 86px;
+  padding: 8px;
+  border: 1px solid rgba(113, 215, 255, 0.14);
+  border-radius: 18px;
+  color: white;
+  background: rgba(255, 255, 255, 0.055);
+  text-align: left;
+}
+
+.mini-service-card img {
+  width: 72px;
+  height: 68px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.mini-service-card b,
+.mini-service-card small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-service-card small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.service-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.service-detail > img {
+  width: 100%;
+  min-height: 340px;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 22px;
+}
+
+.soft-panel {
+  background: rgba(255, 255, 255, 0.035);
+}
+
 .premium-button,
 .secondary-button,
 .ghost-button,
@@ -1060,16 +1390,25 @@ img {
   }
 
   .app-main {
-    padding: 18px 16px calc(96px + var(--safe-bottom));
+    padding: 14px 12px calc(104px + var(--safe-bottom));
   }
 
   .app-topbar {
-    margin: -18px -16px 22px;
-    padding: calc(14px + var(--safe-top)) 16px 14px;
+    gap: 10px;
+    margin: -14px -12px 16px;
+    padding: calc(12px + var(--safe-top)) 12px 12px;
   }
 
   .app-topbar h1 {
-    font-size: 24px;
+    font-size: 21px;
+    line-height: 1.05;
+  }
+
+  .app-topbar p {
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mini-profile {
@@ -1086,7 +1425,7 @@ img {
     overflow-x: auto;
     scrollbar-width: none;
     gap: 4px;
-    padding: 8px 8px calc(8px + var(--safe-bottom));
+    padding: 7px 7px calc(7px + var(--safe-bottom));
     border-top: 1px solid rgba(113, 215, 255, 0.13);
     background: rgba(3, 7, 17, 0.9);
     backdrop-filter: blur(22px);
@@ -1099,19 +1438,19 @@ img {
 
   .bottom-nav-button {
     position: relative;
-    flex: 0 0 78px;
-    min-height: 58px;
+    flex: 0 0 72px;
+    min-height: 56px;
     display: grid;
     place-items: center;
     gap: 3px;
     border-radius: 16px;
     color: var(--muted-2);
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 750;
   }
 
   .bottom-nav-button span {
-    max-width: 70px;
+    max-width: 64px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1168,6 +1507,26 @@ img {
     max-height: none;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .service-card-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .service-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .service-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-map-screen {
+    min-height: min(690px, calc(100dvh - 128px));
+  }
+
+  .astana-map {
+    min-height: min(620px, calc(100dvh - 128px));
+  }
 }
 
 @media (max-width: 640px) {
@@ -1179,8 +1538,17 @@ img {
   }
 
   .hero-card {
-    min-height: 300px;
-    padding: 24px;
+    min-height: auto;
+    padding: 18px;
+  }
+
+  .hero-card h2 {
+    font-size: 28px;
+  }
+
+  .hero-card p {
+    font-size: 14px;
+    line-height: 1.5;
   }
 
   .section-head {
@@ -1195,12 +1563,13 @@ img {
 
   .premium-card-inner,
   .list-card,
-  .vendor-card-body {
+  .vendor-card-body,
+  .service-card-body {
     padding: 16px;
   }
 
   .map-canvas {
-    min-height: 330px;
+    min-height: 300px;
     border-radius: 20px;
   }
 
@@ -1224,5 +1593,103 @@ img {
 
   .mobile-only {
     display: block;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-topbar-actions {
+    gap: 6px;
+  }
+
+  .app-topbar .language-switcher {
+    display: none;
+  }
+
+  .catalog-search-row,
+  .filter-row,
+  .service-card-list,
+  .service-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-top {
+    border-radius: 20px;
+  }
+
+  .catalog-top h2 {
+    font-size: 25px;
+  }
+
+  .catalog-top p {
+    font-size: 14px;
+  }
+
+  .service-card {
+    border-radius: 20px;
+  }
+
+  .service-card > img {
+    aspect-ratio: 16 / 9;
+  }
+
+  .catalog-map-screen {
+    min-height: min(650px, calc(100dvh - 120px));
+    border-radius: 22px;
+  }
+
+  .astana-map {
+    min-height: min(590px, calc(100dvh - 120px));
+  }
+
+  .map-bottom-sheet {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border-radius: 22px;
+  }
+
+  .mini-service-card {
+    flex-basis: 238px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-main {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .app-topbar {
+    margin-left: -10px;
+    margin-right: -10px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .app-topbar h1 {
+    font-size: 19px;
+  }
+
+  .bottom-nav-button {
+    flex-basis: 66px;
+    font-size: 10px;
+  }
+
+  .bottom-nav-button span {
+    max-width: 58px;
+  }
+
+  .premium-card-inner,
+  .list-card,
+  .vendor-card-body,
+  .service-card-body {
+    padding: 14px;
+  }
+
+  .category-chip-row button,
+  .category-chip-row span {
+    min-height: 34px;
+    padding: 0 11px;
+    font-size: 12px;
   }
 }
