@@ -82,7 +82,7 @@ export default function AppShell({
                 type="button"
                 aria-label={t("notifications", lang)}
                 onClick={() =>
-                  router.push(user?.role === "vendor" ? "/vendor/messages" : user?.role === "admin" ? "/admin/messages" : "/menu/profile")
+                  router.push(user?.role === "vendor" ? "/vendor/messages" : user?.role === "admin" ? "/admin/messages" : "/menu/notifications")
                 }
               >
                 <Bell size={20} />

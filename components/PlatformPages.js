@@ -1355,6 +1355,161 @@ export function AdminSection({ section = "dashboard" }) {
   return <div className="page-stack"><SectionHead title={titleMap[section]} text="Операционная панель управления платформой toi.kz." />{(renderMap[section] || renderDashboard)()}</div>;
 }
 
+const INTERNAL_MODULES = {
+  map: {
+    title: "Карта услуг",
+    kicker: "Marketplace map",
+    text: "Полированный map-first экран для поиска тойхан, фотографов, декора и других vendor-услуг рядом с выбранным районом.",
+    icon: MapPin,
+    cta: "Real map API can be connected in Step 2",
+    stats: [["Pins", "110+"], ["City", "Astana"], ["Mode", "Map + list"]],
+  },
+  budget: {
+    title: "Smart Budget Planner",
+    kicker: "Finance foundation",
+    text: "Скелет умного бюджета: planned vs spent, категории, vendor payments, remaining amount и будущие подсказки.",
+    icon: Wallet,
+    cta: "Жақында / Coming soon: AI budget suggestions",
+    stats: [["Planned", "8.5M ₸"], ["Spent", "2.1M ₸"], ["Remaining", "6.4M ₸"]],
+  },
+  guests: {
+    title: "Guests",
+    kicker: "RSVP and attendance",
+    text: "Гостевая база с RSVP, phone, side, invitation status және attendance status үшін дайын responsive foundation.",
+    icon: Users,
+    cta: "Жақында / Coming soon: import from contacts",
+    stats: [["Guests", "120"], ["RSVP", "64%"], ["Groups", "6"]],
+  },
+  tables: {
+    title: "Tables / Seating",
+    kicker: "Seating plan",
+    text: "Үстелдер мен орындарды бөлуге арналған skeleton: bride/groom side, family/friends/work groups және drag-ready layout.",
+    icon: Table2,
+    cta: "Жақында / Coming soon: drag-and-drop seating",
+    stats: [["Tables", "14"], ["Seats", "140"], ["Open", "20"]],
+  },
+  invitations: {
+    title: "Digital Invitations",
+    kicker: "Shareable invite builder",
+    text: "Premium шақыру builder foundation: templates, couple names, venue, RSVP және shareable public link structure.",
+    icon: Send,
+    cta: "Жақында / Coming soon: template editor",
+    stats: [["Templates", "5"], ["RSVP", "Enabled"], ["Public link", "Ready"]],
+  },
+  timeline: {
+    title: "Timeline",
+    kicker: "Wedding day program",
+    text: "Той күні program/timeline skeleton: ceremony, photo session, banquet, betashar, dance/show және vendor schedule.",
+    icon: Clock,
+    cta: "Жақында / Coming soon: vendor reminders",
+    stats: [["Events", "9"], ["Reminders", "Ready"], ["Views", "Day/list"]],
+  },
+  notifications: {
+    title: "Notifications",
+    kicker: "Activity center",
+    text: "Бронь, RSVP, vendor replies, admin updates және payment reminders үшін notification inbox foundation.",
+    icon: Bell,
+    cta: "Жақында / Coming soon: push notifications",
+    stats: [["Unread", "2"], ["Channels", "App"], ["Push", "PWA-ready"]],
+  },
+  messages: {
+    title: "Messages",
+    kicker: "Client/vendor chat",
+    text: "Client пен vendor арасындағы basic messaging skeleton: conversation list, message preview, quick reply actions.",
+    icon: MessageCircle,
+    cta: "Жақында / Coming soon: realtime chat",
+    stats: [["Dialogs", "3"], ["Unread", "1"], ["Realtime", "Ready path"]],
+  },
+};
+
+export function InternalModulePage({ section }) {
+  const showToast = useToast();
+  const router = useRouter();
+  const { store } = useAppStore();
+  const module = INTERNAL_MODULES[section] || INTERNAL_MODULES.notifications;
+  const Icon = module.icon;
+  const featuredVendors = store.vendors.filter((vendor) => vendor.status === "approved").slice(0, 5);
+  const timelineRows = [
+    ["10:00", "Bride preparation", "Beauty / photo"],
+    ["13:00", "Nikah ceremony", "Family"],
+    ["17:30", "Guest welcome", "Banquet hall"],
+    ["19:00", "Betashar", "Traditional program"],
+  ];
+
+  return (
+    <div className="page-stack">
+      <section className="module-hero premium-card premium-card-inner">
+        <div className="module-hero-icon">
+          <Icon size={30} aria-hidden="true" />
+        </div>
+        <div>
+          <span className="status-pill success">{module.kicker}</span>
+          <h2>{module.title}</h2>
+          <p>{module.text}</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => showToast(module.cta)}>
+          Жақында / Coming soon
+        </button>
+      </section>
+
+      <div className="grid-3">
+        {module.stats.map(([label, value]) => (
+          <StatCard key={label} icon={Icon} label={label} value={value} />
+        ))}
+      </div>
+
+      {section === "map" ? (
+        <section className="map-shell premium-card premium-card-inner">
+          <div className="map-canvas" aria-label="Mock service map">
+            <span className="map-watermark">TOI.KZ MAP</span>
+            {featuredVendors.map((vendor, index) => (
+              <button
+                key={vendor.id}
+                className="map-pin"
+                style={{ left: `${18 + index * 15}%`, top: `${26 + (index % 3) * 18}%` }}
+                type="button"
+                onClick={() => showToast(`${vendor.businessName}: ${vendor.category}`)}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+          <div className="map-list">
+            {featuredVendors.map((vendor) => (
+              <article className="map-list-card" key={vendor.id}>
+                <strong>{vendor.businessName}</strong>
+                <span>{vendor.category} · {vendor.city} · {formatMoney(vendor.priceFrom)} бастап</span>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : section === "timeline" ? (
+        <section className="premium-card premium-card-inner">
+          <SectionHead title="Program skeleton" text="Step 2-де бұл Firebase timeline data-ға қосылады." />
+          <div className="module-list">
+            {timelineRows.map(([time, title, meta]) => (
+              <div className="module-list-row" key={time}>
+                <strong>{time}</strong>
+                <span>{title}</span>
+                <em>{meta}</em>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="premium-card premium-card-inner">
+          <SectionHead title="Foundation ready" text="Бұл экран route, navigation, responsive layout және premium placeholder ретінде дайын." />
+          <div className="module-action-grid">
+            <button className="secondary-button" type="button" onClick={() => router.push("/menu/catalog")}>Каталог ашу</button>
+            <button className="secondary-button" type="button" onClick={() => router.push("/menu/booking")}>Бронь қарау</button>
+            <button className="secondary-button" type="button" onClick={() => showToast(module.cta)}>Coming soon</button>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
 export function InvitePage({ eventId }) {
   const { store } = useAppStore();
   const showToast = useToast();
